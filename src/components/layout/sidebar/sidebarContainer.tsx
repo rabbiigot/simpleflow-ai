@@ -47,8 +47,7 @@ const SidebarContainer = ({
                       className={cn(
                         "whitespace-nowrap overflow-hidden transition-all duration-300",
                         sidebarState !== "expanded"
-                          ? "opacity-100 ml-2 w-auto"
-                          : "opacity-0 w-0"
+                          ? "opacity-0 w-0" : "opacity-100 ml-2 w-auto"
                       )}
                     >
                       {item.name}
