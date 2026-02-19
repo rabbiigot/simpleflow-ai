@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Tent } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import NativeSignUp from "./nativeSignIn";
+import googleImg from "../../../../src/assets/google.png"
 
 interface SignInContainerProps {
   open: boolean;
@@ -125,7 +126,7 @@ const SignInContainer: React.FC<SignInContainerProps> = ({
                 onClick={handleGoogleSignIn}
               >
                 <img
-                  src="../../../../src/assets/google.png"
+                  src={googleImg}
                   alt="Google Icon"
                   className="mr-1 h-5 w-5"
                 />

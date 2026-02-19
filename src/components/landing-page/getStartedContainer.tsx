@@ -6,12 +6,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ArrowRight, BarChart3, Target, Zap } from "lucide-react";
 import React, { useState } from "react";
 import SigneInContainer from "../singin/signinContainer";
+import SFpng from "../../src/assets/SF.png"
+import landingPageImg from "../../src/assets/landingpage.png" 
 
 // IMPORTANT: Replace this with your actual logo component or image path
 const Logo = () => (
   <div className="flex items-center text-xl font-bold text-gray-800 dark:text-white">
     <img
-      src="../../src/assets/SF.png"
+      src= {SFpng}
       alt="SimpleFlow Logo"
       className="h-15 w-25"
     />
@@ -121,7 +123,7 @@ const GetStartedContainer: React.FC = () => {
             */}
             <div className="w-full max-w-xl h-auto relative">
               <img
-                src="../../src/assets/landingpage.png" // **Replace this path**
+                src={landingPageImg} // **Replace this path**
                 alt="SimpleFlow App Mockup on Laptop"
                 className="w-full h-auto object-contain shadow-2xl rounded-lg transform translate-y-8"
               />

@@ -1,4 +1,5 @@
 import { Card } from "@/components/ui/card";
+import flowmoGif from "/src/assets/loading.gif"
 
 type FlowmoAssistantContainerProps = {
   aiState: "expanded" | "collapsed";
@@ -30,7 +31,7 @@ const FlowmoAssistantContainer: React.FC<FlowmoAssistantContainerProps> = ({
           </>
         )}
         <img
-          src="/src/assets/loading.gif"
+          src={flowmoGif}
           alt="AI Assistant"
           className="h-10 mr-5 cursor-pointer"
         />
