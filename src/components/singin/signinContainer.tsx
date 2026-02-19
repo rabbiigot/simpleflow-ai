@@ -47,10 +47,10 @@ const SignInContainer: React.FC<SignInContainerProps> = ({
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const passwordsMatch =
-    !form.password ||
-    !form.confirmPassword ||
-    form.password === form.confirmPassword;
+  // const passwordsMatch =
+  //   !form.password ||
+  //   !form.confirmPassword ||
+  //   form.password === form.confirmPassword;
 
   const handleEmailContinue = () => {
     if (!form.email) return;
