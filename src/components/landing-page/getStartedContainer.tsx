@@ -6,8 +6,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ArrowRight, BarChart3, Target, Zap } from "lucide-react";
 import React, { useState } from "react";
 import SigneInContainer from "../singin/signinContainer";
-import SFpng from "../../src/assets/SF.png"
-import landingPageImg from "../../src/assets/landingpage.png" 
+import SFpng from "../../assets/SF.png"
+import landingPageImg from "../../assets/landingpage.png" 
 
 // IMPORTANT: Replace this with your actual logo component or image path
 const Logo = () => (

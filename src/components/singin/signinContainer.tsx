@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Tent } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import NativeSignUp from "./nativeSignIn";
-import googleImg from "../../../../src/assets/google.png"
+import googleImg from "../../assets/google.png"
 
 interface SignInContainerProps {
   open: boolean;
