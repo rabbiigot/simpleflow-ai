@@ -120,28 +120,28 @@ const TasksContainer = () => {
     category: "",
   });
 
-  const addPrerequisite = () => {
-    setNewTask((prev) => ({
-      ...prev,
-      prerequisites: [...prev.prerequisites, ""],
-    }));
-  };
+  // // const addPrerequisite = () => {
+  // //   setNewTask((prev) => ({
+  // //     ...prev,
+  // //     prerequisites: [...prev.prerequisites, ""],
+  // //   }));
+  // // };
 
-  const updatePrerequisite = (index: number, value: string) => {
-    setNewTask((prev) => ({
-      ...prev,
-      prerequisites: prev.prerequisites.map((req, i) =>
-        i === index ? value : req
-      ),
-    }));
-  };
+  // // const updatePrerequisite = (index: number, value: string) => {
+  // //   setNewTask((prev) => ({
+  // //     ...prev,
+  // //     prerequisites: prev.prerequisites.map((req, i) =>
+  // //       i === index ? value : req
+  // //     ),
+  // //   }));
+  // // };
 
-  const removePrerequisite = (index: number) => {
-    setNewTask((prev) => ({
-      ...prev,
-      prerequisites: prev.prerequisites.filter((_, i) => i !== index),
-    }));
-  };
+  // const removePrerequisite = (index: number) => {
+  //   setNewTask((prev) => ({
+  //     ...prev,
+  //     prerequisites: prev.prerequisites.filter((_, i) => i !== index),
+  //   }));
+  // };
 
   const createTask = () => {
     const task: Task = {

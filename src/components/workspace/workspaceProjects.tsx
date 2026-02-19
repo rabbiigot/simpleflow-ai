@@ -200,7 +200,7 @@ function DroppableColumn({
 export default function WorkspaceKanban() {
   const params = useParams({ strict: false });
   let projectId = params.projectId;
-  const [projectInfo, setProjectInfo] = useState<any>(null);
+  // const [projectInfo, setProjectInfo] = useState<any>(null);
   // const [projectId, setProjectId] = useState<string | null>(null);
   useEffect(() => {
     console.log("Current Params:", params);

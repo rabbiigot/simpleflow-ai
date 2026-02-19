@@ -6,7 +6,7 @@ type SidebarButtonProps = {
   toggleSidebar: () => void;
 };
 
-const SidebarButton = ({ sidebarState, toggleSidebar }: SidebarButtonProps) => {
+const SidebarButton = ({ toggleSidebar }: SidebarButtonProps) => {
   return (
     <>
       <Button

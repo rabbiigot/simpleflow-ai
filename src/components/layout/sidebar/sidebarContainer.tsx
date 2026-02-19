@@ -70,7 +70,6 @@ const SidebarContainer = ({
       />
       <FooterContainer
         sidebarState={sidebarState}
-        toggleSidebar={toggleSidebar}
       />
     </>
   );

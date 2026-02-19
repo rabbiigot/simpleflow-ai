@@ -2,12 +2,10 @@ import { Card } from "@/components/ui/card";
 
 type FooterContainerProps = {
   sidebarState?: string;
-  toggleSidebar?: () => void;
 };
 
 const FooterContainer: React.FC<FooterContainerProps> = ({
   sidebarState,
-  toggleSidebar,
 }) => {
   return (
     <Card>

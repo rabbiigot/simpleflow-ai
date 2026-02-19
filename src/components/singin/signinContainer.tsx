@@ -62,26 +62,26 @@ const SignInContainer: React.FC<SignInContainerProps> = ({
     console.log("Proceeding with Google Sign-In");
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!passwordsMatch) return;
+  // const handleSubmit = async (e: React.FormEvent) => {
+  //   e.preventDefault();
+  //   if (!passwordsMatch) return;
 
-    const payload = {
-      email: form.email,
-      firstName: form.firstName,
-      lastName: form.lastName,
-      phoneNumber: form.phoneNumber,
-      country: form.country,
-      address: form.address,
-      password: form.password,
-    };
+  //   const payload = {
+  //     email: form.email,
+  //     firstName: form.firstName,
+  //     lastName: form.lastName,
+  //     phoneNumber: form.phoneNumber,
+  //     country: form.country,
+  //     address: form.address,
+  //     password: form.password,
+  //   };
 
-    console.log("Submitting user:", payload);
+  //   console.log("Submitting user:", payload);
 
-    // API call here
+  //   // API call here
 
-    onOpenChange(false);
-  };
+  //   onOpenChange(false);
+  // };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
