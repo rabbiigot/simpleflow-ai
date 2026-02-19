@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronsLeftRight } from "lucide-react";
 
 type SidebarButtonProps = {
   sidebarState: string;
@@ -11,9 +11,20 @@ const SidebarButton = ({ sidebarState, toggleSidebar }: SidebarButtonProps) => {
     <>
       <Button
         onClick={toggleSidebar}
-        className="cursor-pointer bg-cyan-500 hover:bg-orange-500 transition-all rounded-full py-5 absolute flex bottom-100 left-full -translate-x-1/2 z-100 text-sm font-medium"
+        className="
+          cursor-pointer
+          bg-blue-500 hover:bg-indigo-500 transition-all
+          rounded-full py-5
+          absolute
+          top-1/2 -translate-y-1/2
+          left-full -translate-x-1/2
+          z-40
+          text-sm font-medium
+        "
       >
-        {sidebarState === "expanded" ? <ChevronLeft /> : <ChevronRight />}
+        {" "}
+        <ChevronsLeftRight />
+        {/* {sidebarState === "expanded" ? <ChevronLeft /> : <ChevronRight />} */}
       </Button>
     </>
   );

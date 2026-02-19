@@ -1,5 +1,7 @@
 import {
+  AlarmClockCheck,
   BarChart3,
+  HandHeart,
   Layers,
   LayoutDashboard,
   Receipt,
@@ -15,6 +17,11 @@ export const navigationSidebarItems: NavigationItem[] = [
     href: "/dashboard",
   },
   {
+    name: "Social",
+    icon: HandHeart,
+    href: "/social",
+  },
+  {
     name: "Workspace",
     icon: Layers,
     href: "/workspace",
@@ -25,14 +32,19 @@ export const navigationSidebarItems: NavigationItem[] = [
     href: "/tasks",
   },
   {
-    name: "Finance",
+    name: "Finances",
     icon: Receipt,
-    href: "/finance",
+    href: "/finances",
   },
   {
-    name: "Analytics",
+    name: "Time Sheet",
+    icon: AlarmClockCheck,
+    href: "/time-sheet",
+  },
+  {
+    name: "Insights & Reports",
     icon: BarChart3,
-    href: "/analytics",
+    href: "/insights",
   },
   {
     name: "Automation",
