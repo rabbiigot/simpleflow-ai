@@ -53,7 +53,10 @@ const FlowmoAssistantContainer: React.FC<FlowmoAssistantContainerProps> = ({
   }, []);
 
   const toolsPreview = useMemo(() => {
-    return tools.slice(0, 8).map((tool) => tool.name).join(", ");
+    return tools
+      .slice(0, 8)
+      .map((tool) => tool.name)
+      .join(", ");
   }, [tools]);
 
   const handleSubmit = async (event: FormEvent) => {
@@ -74,7 +77,9 @@ const FlowmoAssistantContainer: React.FC<FlowmoAssistantContainerProps> = ({
     try {
       const currentUserId = getCurrentUserId();
       if (!currentUserId) {
-        throw new Error("No signed-in user id found. Please sign up or log in again.");
+        throw new Error(
+          "No signed-in user id found. Please sign up or log in again.",
+        );
       }
       const result = await chatAi(raw, { userId: currentUserId });
       setMessages((prev) => [
@@ -82,12 +87,11 @@ const FlowmoAssistantContainer: React.FC<FlowmoAssistantContainerProps> = ({
         {
           id: `assistant-${Date.now()}`,
           role: "assistant",
-          content:
-            `${result.message}\n\nStatus: ${result.status}\nPlanned: ${JSON.stringify(
-              result.plannedActions,
-              null,
-              2,
-            )}\nResults: ${JSON.stringify(result.results, null, 2)}`,
+          content: `${result.message}\n\nStatus: ${result.status}\nPlanned: ${JSON.stringify(
+            result.plannedActions,
+            null,
+            2,
+          )}\nResults: ${JSON.stringify(result.results, null, 2)}`,
         },
       ]);
     } catch (error) {
@@ -144,7 +148,11 @@ const FlowmoAssistantContainer: React.FC<FlowmoAssistantContainerProps> = ({
             {messages.map((message) => (
               <div
                 key={message.id}
-                className={message.role === "user" ? "flex justify-end" : "flex justify-start"}
+                className={
+                  message.role === "user"
+                    ? "flex justify-end"
+                    : "flex justify-start"
+                }
               >
                 <pre
                   className={
@@ -172,7 +180,10 @@ const FlowmoAssistantContainer: React.FC<FlowmoAssistantContainerProps> = ({
             )}
           </div>
 
-          <form onSubmit={handleSubmit} className="flex items-center border-t p-2 bg-white">
+          <form
+            onSubmit={handleSubmit}
+            className="flex items-center border-t p-2 bg-white"
+          >
             <input
               type="text"
               placeholder="Example: create this task title will be yow_testRabbi and description is yesy yesyyese"

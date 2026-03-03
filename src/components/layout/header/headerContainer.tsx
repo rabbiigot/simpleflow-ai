@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import logoOnly from "/src/assets/logoOnly.png"
+import nameLogo from "/src/assets/namelogo.png"
 
 const HeaderContainer: React.FC<{ sidebarState: "expanded" | "collapsed" }> = ({
   sidebarState,
@@ -26,14 +28,14 @@ const HeaderContainer: React.FC<{ sidebarState: "expanded" | "collapsed" }> = ({
             }`}
           >
             <img
-              src="/src/assets/logoOnly.png"
+              src={logoOnly}
               alt="Logo"
               className=" mt-1 h-13"
             />
             {sidebarOpen ? (
               <div className="">
                 <img
-                  src="/src/assets/namelogo.png"
+                  src={nameLogo}
                   alt="Logo"
                   className="transition-all duration-200 ease-in-out mt-3 h-10"
                 />

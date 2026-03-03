@@ -125,11 +125,19 @@ export default function WorkspaceProjects() {
   };
 
   if (isLoading) {
-    return <div className="p-4 text-sm text-muted-foreground">Loading workspace...</div>;
+    return (
+      <div className="p-4 text-sm text-muted-foreground">
+        Loading workspace...
+      </div>
+    );
   }
 
   if (!workspace) {
-    return <div className="p-4 text-sm text-red-600">{errorMessage || "Workspace not found"}</div>;
+    return (
+      <div className="p-4 text-sm text-red-600">
+        {errorMessage || "Workspace not found"}
+      </div>
+    );
   }
 
   return (
@@ -137,7 +145,10 @@ export default function WorkspaceProjects() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">{workspace.name}</h1>
-          <p className="text-sm text-muted-foreground">{totalTasks} task(s) across {workspace.columns?.length ?? 0} column(s)</p>
+          <p className="text-sm text-muted-foreground">
+            {totalTasks} task(s) across {workspace.columns?.length ?? 0}{" "}
+            column(s)
+          </p>
         </div>
 
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -180,7 +191,10 @@ export default function WorkspaceProjects() {
                   id="task-title"
                   value={taskForm.title}
                   onChange={(event) =>
-                    setTaskForm((prev) => ({ ...prev, title: event.target.value }))
+                    setTaskForm((prev) => ({
+                      ...prev,
+                      title: event.target.value,
+                    }))
                   }
                   placeholder="Task title"
                 />
@@ -192,13 +206,20 @@ export default function WorkspaceProjects() {
                   id="task-description"
                   value={taskForm.description}
                   onChange={(event) =>
-                    setTaskForm((prev) => ({ ...prev, description: event.target.value }))
+                    setTaskForm((prev) => ({
+                      ...prev,
+                      description: event.target.value,
+                    }))
                   }
                   placeholder="Optional task description"
                 />
               </div>
 
-              <Button onClick={() => void handleCreateTask()} disabled={isCreating} className="w-full">
+              <Button
+                onClick={() => void handleCreateTask()}
+                disabled={isCreating}
+                className="w-full"
+              >
                 {isCreating ? "Creating..." : "Create Task"}
               </Button>
             </div>
@@ -214,18 +235,24 @@ export default function WorkspaceProjects() {
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center justify-between text-base">
                 <span>{column.name}</span>
-                <span className="text-xs text-muted-foreground">{column.tasks?.length ?? 0}</span>
+                <span className="text-xs text-muted-foreground">
+                  {column.tasks?.length ?? 0}
+                </span>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
               {(column.tasks ?? []).length === 0 ? (
-                <p className="text-sm text-muted-foreground">No tasks in this column.</p>
+                <p className="text-sm text-muted-foreground">
+                  No tasks in this column.
+                </p>
               ) : (
                 (column.tasks ?? []).map((task) => (
                   <div key={task.id} className="rounded border p-3 bg-gray-50">
                     <p className="font-medium text-sm">{task.title}</p>
                     {task.description && (
-                      <p className="text-xs text-muted-foreground mt-1">{task.description}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {task.description}
+                      </p>
                     )}
                   </div>
                 ))

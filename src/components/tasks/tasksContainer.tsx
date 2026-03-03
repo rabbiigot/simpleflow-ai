@@ -48,9 +48,16 @@ type TaskForm = {
   description: string;
 };
 
-function mapStatus(columnName: string, columnType?: string): TaskView["status"] {
+function mapStatus(
+  columnName: string,
+  columnType?: string,
+): TaskView["status"] {
   const normalized = columnName.toLowerCase();
-  if (columnType === "COMPLETED" || normalized.includes("done") || normalized.includes("complete")) {
+  if (
+    columnType === "COMPLETED" ||
+    normalized.includes("done") ||
+    normalized.includes("complete")
+  ) {
     return "completed";
   }
   if (normalized.includes("progress") || normalized.includes("doing")) {
@@ -88,7 +95,8 @@ const TasksContainer = () => {
 
       if (data.length > 0) {
         const workspaceId = newTask.workspaceId || data[0].id;
-        const workspace = data.find((item) => item.id === workspaceId) || data[0];
+        const workspace =
+          data.find((item) => item.id === workspaceId) || data[0];
         const firstColumnId = workspace.columns?.[0]?.id || "";
 
         setNewTask((prev) => ({
@@ -99,7 +107,9 @@ const TasksContainer = () => {
       }
     } catch (error) {
       setErrorMessage(
-        error instanceof Error ? error.message : "Failed to load tasks from backend",
+        error instanceof Error
+          ? error.message
+          : "Failed to load tasks from backend",
       );
     } finally {
       setIsLoading(false);
@@ -184,7 +194,9 @@ const TasksContainer = () => {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-3xl font-bold">Tasks</h1>
-          <p className="text-muted-foreground mt-2">Real tasks from backend workspaces</p>
+          <p className="text-muted-foreground mt-2">
+            Real tasks from backend workspaces
+          </p>
         </div>
 
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
@@ -202,7 +214,10 @@ const TasksContainer = () => {
             <div className="space-y-4 py-2">
               <div className="space-y-2">
                 <Label>Workspace</Label>
-                <Select value={newTask.workspaceId} onValueChange={handleWorkspaceChange}>
+                <Select
+                  value={newTask.workspaceId}
+                  onValueChange={handleWorkspaceChange}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Select workspace" />
                   </SelectTrigger>
@@ -242,7 +257,10 @@ const TasksContainer = () => {
                 <Input
                   value={newTask.title}
                   onChange={(event) =>
-                    setNewTask((prev) => ({ ...prev, title: event.target.value }))
+                    setNewTask((prev) => ({
+                      ...prev,
+                      title: event.target.value,
+                    }))
                   }
                   placeholder="Task title"
                 />
@@ -253,13 +271,20 @@ const TasksContainer = () => {
                 <Textarea
                   value={newTask.description}
                   onChange={(event) =>
-                    setNewTask((prev) => ({ ...prev, description: event.target.value }))
+                    setNewTask((prev) => ({
+                      ...prev,
+                      description: event.target.value,
+                    }))
                   }
                   placeholder="Optional description"
                 />
               </div>
 
-              <Button onClick={() => void handleCreateTask()} disabled={isCreating} className="w-full">
+              <Button
+                onClick={() => void handleCreateTask()}
+                disabled={isCreating}
+                className="w-full"
+              >
                 {isCreating ? "Creating..." : "Create Task"}
               </Button>
             </div>
@@ -267,9 +292,15 @@ const TasksContainer = () => {
         </Dialog>
       </div>
 
-      {errorMessage && <p className="text-sm text-red-600 mb-4">{errorMessage}</p>}
+      {errorMessage && (
+        <p className="text-sm text-red-600 mb-4">{errorMessage}</p>
+      )}
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+      <Tabs
+        value={activeTab}
+        onValueChange={setActiveTab}
+        className="space-y-4"
+      >
         <TabsList className="grid w-full max-w-md grid-cols-3">
           <TabsTrigger value="all">All</TabsTrigger>
           <TabsTrigger value="active">Active</TabsTrigger>
@@ -279,11 +310,15 @@ const TasksContainer = () => {
         <TabsContent value={activeTab} className="space-y-3">
           {isLoading ? (
             <Card>
-              <CardContent className="pt-6 text-sm text-muted-foreground">Loading tasks...</CardContent>
+              <CardContent className="pt-6 text-sm text-muted-foreground">
+                Loading tasks...
+              </CardContent>
             </Card>
           ) : visibleTasks.length === 0 ? (
             <Card>
-              <CardContent className="pt-6 text-sm text-muted-foreground">No tasks found.</CardContent>
+              <CardContent className="pt-6 text-sm text-muted-foreground">
+                No tasks found.
+              </CardContent>
             </Card>
           ) : (
             visibleTasks.map((task) => (
@@ -295,7 +330,9 @@ const TasksContainer = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  <p className="text-sm text-muted-foreground">{task.description || "No description"}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {task.description || "No description"}
+                  </p>
                   <div className="flex gap-4 text-xs text-muted-foreground">
                     <span>{task.workspaceName}</span>
                     <span>{task.columnName}</span>

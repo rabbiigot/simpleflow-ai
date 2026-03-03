@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Tent } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import NativeSignUp from "./nativeSignIn";
+import googleImg from "../../assets/google.png"
 
 interface SignInContainerProps {
   open: boolean;
@@ -47,10 +48,10 @@ const SignInContainer: React.FC<SignInContainerProps> = ({
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const passwordsMatch =
-    !form.password ||
-    !form.confirmPassword ||
-    form.password === form.confirmPassword;
+  // const passwordsMatch =
+  //   !form.password ||
+  //   !form.confirmPassword ||
+  //   form.password === form.confirmPassword;
 
   const handleEmailContinue = () => {
     if (!form.email) return;
@@ -62,26 +63,26 @@ const SignInContainer: React.FC<SignInContainerProps> = ({
     console.log("Proceeding with Google Sign-In");
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!passwordsMatch) return;
+  // const handleSubmit = async (e: React.FormEvent) => {
+  //   e.preventDefault();
+  //   if (!passwordsMatch) return;
 
-    const payload = {
-      email: form.email,
-      firstName: form.firstName,
-      lastName: form.lastName,
-      phoneNumber: form.phoneNumber,
-      country: form.country,
-      address: form.address,
-      password: form.password,
-    };
+  //   const payload = {
+  //     email: form.email,
+  //     firstName: form.firstName,
+  //     lastName: form.lastName,
+  //     phoneNumber: form.phoneNumber,
+  //     country: form.country,
+  //     address: form.address,
+  //     password: form.password,
+  //   };
 
-    console.log("Submitting user:", payload);
+  //   console.log("Submitting user:", payload);
 
-    // API call here
+  //   // API call here
 
-    onOpenChange(false);
-  };
+  //   onOpenChange(false);
+  // };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -125,7 +126,7 @@ const SignInContainer: React.FC<SignInContainerProps> = ({
                 onClick={handleGoogleSignIn}
               >
                 <img
-                  src="../../../../src/assets/google.png"
+                  src={googleImg}
                   alt="Google Icon"
                   className="mr-1 h-5 w-5"
                 />
