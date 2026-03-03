@@ -8,13 +8,17 @@ const RootLayout = () => {
   const router = useRouter();
   const pathname = router.state.location.pathname;
   const [sidebarState, setSidebarState] = useState<"expanded" | "collapsed">(
-    "expanded"
+    "expanded",
   );
   const [aiState, setAiState] = useState<"expanded" | "collapsed">("collapsed");
   const [loggingPages, setLoggingPages] = useState<boolean>(false);
 
   useEffect(() => {
-    if (pathname === "/sign-up" || pathname === "/get-started") {
+    if (
+      pathname === "/sign-up" ||
+      pathname === "/login" ||
+      pathname === "/get-started"
+    ) {
       setLoggingPages(true);
     } else {
       setLoggingPages(false);
@@ -40,11 +44,11 @@ const RootLayout = () => {
           <div className="z-0 w-full h-screen overflow-hidden ">
             <div
               className={`fixed flex flex-col z-40 left-0 ${
-                sidebarState !== "expanded" ? "w-19" : "w-62"
+                sidebarState !== "expanded" ? "w-19" : "w-65"
               } h-screen`}
             >
               <HeaderContainer sidebarState={sidebarState} />
-              <div className="relative flex-1 -mt-3 ">
+              <div className="relative flex-1">
                 <SidebarContainer
                   sidebarState={sidebarState}
                   toggleSidebar={toggleSidebar}
@@ -52,9 +56,9 @@ const RootLayout = () => {
               </div>
             </div>
             <div
-              className={`relative z-30 w-full transition-all  ${
+              className={` z-30 w-full transition-all  ${
                 sidebarState !== "expanded" ? "pl-22 " : "pl-65 "
-              } ${aiState !== "expanded" ? "pr-22" : "pr-100"}`}
+              } ${aiState !== "expanded" ? "pr-20" : "pr-100"}`}
               style={{ height: "calc(100vh)" }}
             >
               <div className="relative overflow-y-auto w-full h-full">

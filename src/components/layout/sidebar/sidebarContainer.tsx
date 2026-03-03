@@ -23,7 +23,7 @@ const SidebarContainer = ({
 
   return (
     <>
-      <Card className="flex flex-col border-r z-30 border-t-0 rounded-none h-full grow px-3 pb-4">
+      <Card className="flex flex-col border-r z-30 border-t-0 rounded-none h-full grow px-3 pb-2">
         {/* <CardHeader title="Sidebar" /> */}
         <nav className="flex flex-1 z-50 flex-col">
           <ul role="list" className="flex flex-1 flex-col gap-y-1 p-1">
@@ -38,7 +38,7 @@ const SidebarContainer = ({
                       isActive
                         ? "bg-linear-to-r from-purple-500 via-indigo-500 to-blue-500 text-white"
                         : "text-sidebar-foreground hover:bg-gray-200 hover:text-sidebar-accent-foreground",
-                      "group flex items-center gap-x-2 rounded-md p-2 text-sm font-medium transition-colors duration-200"
+                      "group flex items-center gap-x-2 rounded-md p-2 text-sm font-medium transition-colors duration-200",
                     )}
                   >
                     <item.icon
@@ -52,7 +52,7 @@ const SidebarContainer = ({
                         "whitespace-nowrap overflow-hidden transition-all duration-300",
                         sidebarState !== "expanded"
                           ? "opacity-0 w-0"
-                          : "opacity-100 ml-2 w-auto"
+                          : "opacity-100 ml-2 w-auto",
                       )}
                     >
                       {item.name}
@@ -63,12 +63,9 @@ const SidebarContainer = ({
             })}
           </ul>
         </nav>
+        <FooterContainer sidebarState={sidebarState} />
       </Card>
       <SidebarButton
-        sidebarState={sidebarState}
-        toggleSidebar={toggleSidebar}
-      />
-      <FooterContainer
         sidebarState={sidebarState}
         toggleSidebar={toggleSidebar}
       />

@@ -4,7 +4,6 @@ import {
   HandHeart,
   Layers,
   LayoutDashboard,
-  Receipt,
   ServerCog,
   Workflow,
 } from "lucide-react";
@@ -31,11 +30,11 @@ export const navigationSidebarItems: NavigationItem[] = [
     icon: ServerCog,
     href: "/tasks",
   },
-  {
-    name: "Finances",
-    icon: Receipt,
-    href: "/finances",
-  },
+  // {
+  //   name: "Finances",
+  //   icon: Receipt,
+  //   href: "/finances",
+  // },
   {
     name: "Time Sheet",
     icon: AlarmClockCheck,

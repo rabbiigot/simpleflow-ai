@@ -160,8 +160,8 @@ export default function AutomationContainer() {
       automations.map((automation) =>
         automation.id === id
           ? { ...automation, isActive: !automation.isActive }
-          : automation
-      )
+          : automation,
+      ),
     );
   };
 

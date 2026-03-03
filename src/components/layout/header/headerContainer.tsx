@@ -17,8 +17,8 @@ const HeaderContainer: React.FC<{ sidebarState: "expanded" | "collapsed" }> = ({
       <header>
         <div
           className={`relative bg-white left-0 top-0 ${
-            sidebarOpen ? "w-62" : "w-19"
-          } h-[70px] p-1 z-40 border-b border-r drop-shadow flex items-center  justify-between`}
+            sidebarOpen ? "w-65" : "w-19"
+          } h-[70px] p-1 z-40 border-b border-r drop-shadow flex items-center transition-all justify-between`}
         >
           <div
             className={`fixed flex flex-row -left-20 ${

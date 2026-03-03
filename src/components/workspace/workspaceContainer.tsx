@@ -36,6 +36,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textArea";
+import { createWorkspace, getWorkspaces } from "@/lib/backend-api";
 import { Link, useParams } from "@tanstack/react-router";
 import {
   BookMarked,
@@ -63,53 +64,11 @@ interface Goal {
   dailyTasks: string[];
 }
 
-const mockGoals: Goal[] = [
-  {
-    id: "1",
-    title: "Learn React Development",
-    description:
-      "Master React fundamentals and build 3 projects to become job-ready",
-    category: "Career",
-    targetDate: "2024-06-30",
-    progress: 75,
-    status: "active",
-    dailyTasks: [
-      "Complete 1 React tutorial chapter",
-      "Practice coding for 2 hours",
-      "Review previous concepts",
-    ],
-  },
-  {
-    id: "2",
-    title: "Morning Exercise Routine",
-    description:
-      "Establish a consistent 30-minute morning workout routine for better health",
-    category: "Health",
-    targetDate: "2024-04-15",
-    progress: 60,
-    status: "active",
-    dailyTasks: [
-      "30-minute workout",
-      "Drink 2 glasses of water",
-      "Stretch for 10 minutes",
-    ],
-  },
-  {
-    id: "3",
-    title: "Save $5000 Emergency Fund",
-    description: "Build an emergency fund by saving $500 per month",
-    category: "Finance",
-    targetDate: "2024-12-31",
-    progress: 40,
-    status: "active",
-    dailyTasks: ["Track daily expenses", "Save $16.67 daily", "Review budget"],
-  },
-];
-
 const WorkspaceContainer = () => {
   const [date, setDate] = React.useState<Date | undefined>(new Date());
-  const [goals, setGoals] = useState<Goal[]>(mockGoals);
+  const [goals, setGoals] = useState<Goal[]>([]);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const params = useParams({ strict: false });
   const projectId = params.projectId as string | undefined;
   const [newGoal, setNewGoal] = useState({
@@ -121,9 +80,41 @@ const WorkspaceContainer = () => {
     otherCategory: "",
   });
 
+  const loadWorkspaces = async () => {
+    try {
+      const workspaces = await getWorkspaces();
+      setGoals(
+        workspaces.map((workspace) => ({
+          id: workspace.id,
+          title: workspace.name?.trim() || `Workspace ${workspace.id.slice(0, 6)}`,
+          description: `Board ID: ${workspace.id}`,
+          category: "Workspace",
+          targetDate: new Date().toISOString().split("T")[0],
+          progress: 0,
+          status: "active",
+          dailyTasks:
+            workspace.columns?.flatMap((column) =>
+              (column.tasks ?? []).map((task) => task.title),
+            ) ?? [],
+        })),
+      );
+      setErrorMessage(null);
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "Failed to load workspaces from backend",
+      );
+    }
+  };
+
   useEffect(() => {
     console.log("Selected projectId:", params);
   }, [projectId]);
+
+  useEffect(() => {
+    void loadWorkspaces();
+  }, []);
 
   const addDailyTask = () => {
     setNewGoal((prev) => ({
@@ -148,17 +139,25 @@ const WorkspaceContainer = () => {
     }));
   };
 
-  const createGoal = () => {
-    const goal: Goal = {
-      id: Date.now().toString(),
-      ...newGoal,
-      progress: 0,
-      status: "active",
-      dailyTasks: newGoal.dailyTasks.filter((task) => task.trim() !== ""),
-    };
-    setGoals((prev) => [...prev, goal]);
+  const createGoal = async () => {
+    if (!newGoal.title.trim()) {
+      setErrorMessage("Goal title is required");
+      return;
+    }
 
-    console.log(goal);
+    try {
+      await createWorkspace({ name: newGoal.title.trim() });
+      await loadWorkspaces();
+      setErrorMessage(null);
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "Failed to create workspace in backend",
+      );
+      return;
+    }
+
     setNewGoal({
       title: "",
       description: "",
@@ -185,6 +184,8 @@ const WorkspaceContainer = () => {
 
   const getCategoryColor = (category: string) => {
     switch (category) {
+      case "Workspace":
+        return "bg-indigo-500/10 text-indigo-500 border-indigo-500/20";
       case "Career":
         return "bg-blue-500/10 text-blue-500 border-blue-500/20";
       case "Health":
@@ -212,7 +213,7 @@ const WorkspaceContainer = () => {
           <DialogTrigger asChild>
             <Button className="gap-2 mt-7 bg-blue-500 cursor-pointer hover:bg-blue-600 text-white">
               <Plus className="h-4 w-4" />
-              Create Goal
+              Create Workspace
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -225,10 +226,10 @@ const WorkspaceContainer = () => {
 
             <div className="space-y-6 py-4">
               <div className="space-y-2">
-                <Label htmlFor="title">Goal Title</Label>
+                <Label htmlFor="title">Workspace Name</Label>
                 <Input
                   id="title"
-                  placeholder="e.g., Learn Python Programming"
+                  placeholder="e.g., Product Team Workspace"
                   value={newGoal.title}
                   onChange={(e) =>
                     setNewGoal((prev) => ({ ...prev, title: e.target.value }))
@@ -348,10 +349,10 @@ const WorkspaceContainer = () => {
 
               <div className="flex gap-2 pt-4">
                 <Button
-                  onClick={createGoal}
+                  onClick={() => void createGoal()}
                   className="flex-1 bg-linear-to-r from-blue-500 to-blue-500 cursor-pointer hover:from-blue-500 hover:to-purple-500 text-white hover:scale-y-102 hover:scale-x-101 transition-all duration-300"
                 >
-                  Create Goal
+                  Create Workspace
                 </Button>
                 <Button
                   variant="outline"
@@ -365,6 +366,9 @@ const WorkspaceContainer = () => {
         </Dialog>
       </div>
       <hr className="mb-2 border-gray-200" />
+      {errorMessage && (
+        <p className="mb-2 text-sm text-red-600">{errorMessage}</p>
+      )}
       <div className="flex flex-row gap-2">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
