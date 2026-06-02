@@ -1,8 +1,5 @@
-"use client";
-
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -19,15 +16,39 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textArea";
 import {
   createWorkspaceTask,
+  getCurrentUserId,
   getWorkspaces,
   type Workspace,
 } from "@/lib/backend-api";
-import { Calendar, Clock, Plus } from "lucide-react";
+import { useInvalidation } from "@/hooks/use-invalidation";
+import { emitInvalidation } from "@/lib/invalidation";
+import {
+  Calendar,
+  CheckCircle,
+  ChevronDown,
+  ChevronRight,
+  Clock,
+  Layers,
+  Loader2,
+  Plus,
+} from "lucide-react";
+import { useAuthStore } from "@/store/auth-store";
+import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
+import { DEFAULT_COLUMN_COLORS } from "@/components/workspace/utils/color";
+import { parseTaskMeta } from "@/components/workspace/utils/task-meta";
 
 type TaskView = {
   id: string;
@@ -37,7 +58,8 @@ type TaskView = {
   workspaceName: string;
   columnId: string;
   columnName: string;
-  status: "pending" | "in-progress" | "completed";
+  columnColor: string;
+  statusCategory: "pending" | "in-progress" | "completed";
   createdAt?: string;
 };
 
@@ -46,6 +68,7 @@ type TaskForm = {
   columnId: string;
   title: string;
   description: string;
+  customFieldValues: Record<string, string>;
 };
 
 function mapStatus(
@@ -66,18 +89,26 @@ function mapStatus(
   return "pending";
 }
 
+
 const TasksContainer = () => {
+  const authUser = useAuthStore((s) => s.user);
+  const isAdmin = authUser?.role === "ADMIN";
+  const navigate = useNavigate();
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [activeTab, setActiveTab] = useState("all");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [collapsedGroups, setCollapsedGroups] = useState<
+    Record<string, boolean>
+  >({});
   const [newTask, setNewTask] = useState<TaskForm>({
     workspaceId: "",
     columnId: "",
     title: "",
     description: "",
+    customFieldValues: {},
   });
 
   const selectedWorkspace = useMemo(
@@ -120,33 +151,95 @@ const TasksContainer = () => {
     void loadTasks();
   }, []);
 
+  useInvalidation(["workspaces"], () => {
+    void loadTasks();
+  });
+
   const tasks = useMemo<TaskView[]>(() => {
-    return workspaces.flatMap((workspace) =>
-      (workspace.columns ?? []).flatMap((column) =>
-        (column.tasks ?? []).map((task) => ({
-          id: task.id,
-          title: task.title,
-          description: task.description || "",
-          workspaceId: workspace.id,
-          workspaceName: workspace.name,
-          columnId: column.id,
-          columnName: column.name,
-          status: mapStatus(column.name, column.type),
-          createdAt: task.createdAt,
-        })),
-      ),
-    );
-  }, [workspaces]);
+    const currentUserId = Number(getCurrentUserId());
+    return workspaces.flatMap((workspace) => {
+      // Read saved column colors for this workspace
+      let savedColors: Record<string, string> = {};
+      try {
+        const raw = localStorage.getItem(`workspace-column-colors:${workspace.id}`);
+        if (raw) savedColors = JSON.parse(raw);
+      } catch { /* ignore */ }
+
+      const sortedColumns = [...(workspace.columns ?? [])].sort((a, b) => a.position - b.position);
+
+      return sortedColumns.flatMap((column, colIndex) => {
+        const color =
+          savedColors[String(column.id)] ||
+          (column.type === "COMPLETED"
+            ? "#06b6d4"
+            : DEFAULT_COLUMN_COLORS[colIndex % DEFAULT_COLUMN_COLORS.length]);
+
+        return (column.tasks ?? [])
+          .filter((task) => {
+            if (isAdmin) return true;
+            if (task.assigneeId === currentUserId) return true;
+            const meta = parseTaskMeta(task.customFieldValues);
+            return meta.assigneeIds.includes(String(currentUserId));
+          })
+          .map((task) => ({
+            id: task.id,
+            title: task.title,
+            description: task.description || "",
+            workspaceId: workspace.id,
+            workspaceName: workspace.name,
+            columnId: column.id,
+            columnName: column.name,
+            columnColor: color,
+            statusCategory: mapStatus(column.name, column.type),
+            createdAt: task.createdAt,
+          }));
+      });
+    });
+  }, [workspaces, isAdmin]);
 
   const visibleTasks = useMemo(() => {
     if (activeTab === "completed") {
-      return tasks.filter((task) => task.status === "completed");
+      return tasks.filter((task) => task.statusCategory === "completed");
     }
     if (activeTab === "active") {
-      return tasks.filter((task) => task.status !== "completed");
+      return tasks.filter((task) => task.statusCategory !== "completed");
     }
     return tasks;
   }, [tasks, activeTab]);
+
+  // Group visible tasks by workspace
+  const groupedByWorkspace = useMemo(() => {
+    const groups: Array<{
+      workspaceId: string;
+      workspaceName: string;
+      tasks: TaskView[];
+    }> = [];
+    const map = new Map<string, TaskView[]>();
+
+    for (const task of visibleTasks) {
+      const existing = map.get(task.workspaceId);
+      if (existing) {
+        existing.push(task);
+      } else {
+        const arr = [task];
+        map.set(task.workspaceId, arr);
+        groups.push({
+          workspaceId: task.workspaceId,
+          workspaceName: task.workspaceName,
+          tasks: arr,
+        });
+      }
+    }
+
+    return groups;
+  }, [visibleTasks, workspaces]);
+
+  const toggleGroup = (workspaceId: string) => {
+    setCollapsedGroups((prev) => ({
+      ...prev,
+      [workspaceId]: !prev[workspaceId],
+    }));
+  };
 
   const handleWorkspaceChange = (workspaceId: string) => {
     const workspace = workspaces.find((item) => item.id === workspaceId);
@@ -167,19 +260,30 @@ const TasksContainer = () => {
     setErrorMessage(null);
 
     try {
+      const customFieldValues = Object.fromEntries(
+        Object.entries(newTask.customFieldValues).filter(
+          ([, value]) => value.trim() !== "",
+        ),
+      );
+
       await createWorkspaceTask(newTask.workspaceId, {
         columnId: newTask.columnId,
         title: newTask.title.trim(),
         description: newTask.description.trim() || undefined,
+        customFieldValues: Object.keys(customFieldValues).length
+          ? customFieldValues
+          : undefined,
       });
 
       setNewTask((prev) => ({
         ...prev,
         title: "",
         description: "",
+        customFieldValues: {},
       }));
       setIsCreateDialogOpen(false);
       await loadTasks();
+      emitInvalidation(["workspaces"], ["workspace.createTask"]);
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : "Failed to create task",
@@ -190,12 +294,13 @@ const TasksContainer = () => {
   };
 
   return (
-    <div className="px-4 py-8 sm:px-6 lg:px-8">
-      <div className="flex items-center justify-between mb-6">
+    <div className="page-shell">
+      <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Tasks</h1>
+          <p className="section-label">Tasks</p>
+          <h1 className="text-3xl font-bold">My Tasks</h1>
           <p className="text-muted-foreground mt-2">
-            Real tasks from backend workspaces
+            All tasks across your workspaces
           </p>
         </div>
 
@@ -293,63 +398,171 @@ const TasksContainer = () => {
       </div>
 
       {errorMessage && (
-        <p className="text-sm text-red-600 mb-4">{errorMessage}</p>
+        <Card className="mb-4 border-amber-200 bg-amber-50">
+          <CardContent className="pt-4 text-sm text-amber-700">
+            Unable to load tasks. Create a workspace first, then add tasks to
+            see them here.
+          </CardContent>
+        </Card>
       )}
 
       <Tabs
         value={activeTab}
         onValueChange={setActiveTab}
-        className="space-y-4"
+        className="space-y-3"
       >
-        <TabsList className="grid w-full max-w-md grid-cols-3">
+        <TabsList className="grid w-full max-w-md grid-cols-3" data-tour="tasks-tabs">
           <TabsTrigger value="all">All</TabsTrigger>
           <TabsTrigger value="active">Active</TabsTrigger>
           <TabsTrigger value="completed">Completed</TabsTrigger>
         </TabsList>
 
-        <TabsContent value={activeTab} className="space-y-3">
+        <TabsContent value={activeTab} className="space-y-2" data-tour="tasks-list">
           {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              <span className="ml-3 text-muted-foreground">Loading tasks...</span>
+            </div>
+          ) : groupedByWorkspace.length === 0 ? (
             <Card>
-              <CardContent className="pt-6 text-sm text-muted-foreground">
-                Loading tasks...
-              </CardContent>
-            </Card>
-          ) : visibleTasks.length === 0 ? (
-            <Card>
-              <CardContent className="pt-6 text-sm text-muted-foreground">
-                No tasks found.
+              <CardContent className="py-12 text-center">
+                <CheckCircle className="mx-auto mb-3 h-10 w-10 text-muted-foreground opacity-50" />
+                <p className="text-sm font-medium text-muted-foreground">
+                  {activeTab === "completed"
+                    ? "No completed tasks yet"
+                    : activeTab === "active"
+                      ? "No active tasks"
+                      : "No tasks yet"}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {activeTab === "all"
+                    ? "Create a workspace and add tasks to get started."
+                    : "Tasks will appear here as you work through your workspaces."}
+                </p>
               </CardContent>
             </Card>
           ) : (
-            visibleTasks.map((task) => (
-              <Card key={task.id}>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base flex items-center justify-between">
-                    <span>{task.title}</span>
-                    <Badge variant="outline">{task.status}</Badge>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <p className="text-sm text-muted-foreground">
-                    {task.description || "No description"}
-                  </p>
-                  <div className="flex gap-4 text-xs text-muted-foreground">
-                    <span>{task.workspaceName}</span>
-                    <span>{task.columnName}</span>
-                    {task.createdAt && (
-                      <span className="flex items-center gap-1">
-                        <Calendar className="h-3 w-3" />
-                        {new Date(task.createdAt).toLocaleDateString()}
-                      </span>
+            groupedByWorkspace.map((group) => {
+              const isCollapsed =
+                collapsedGroups[group.workspaceId] ?? false;
+
+              return (
+                <div
+                  key={group.workspaceId}
+                  className="rounded-md border border-border bg-card"
+                >
+                  {/* Workspace group header */}
+                  <button
+                    type="button"
+                    onClick={() => toggleGroup(group.workspaceId)}
+                    className={`flex w-full items-center gap-2 px-3 py-2 text-left transition-colors hover:bg-muted ${
+                      isCollapsed ? "rounded-md" : "rounded-t-md"
+                    }`}
+                  >
+                    {isCollapsed ? (
+                      <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+                    ) : (
+                      <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
                     )}
-                    <span className="flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      backend
+                    <Layers className="h-3.5 w-3.5 text-primary" />
+                    <span className="text-xs font-semibold text-foreground">
+                      {group.workspaceName}
                     </span>
-                  </div>
-                </CardContent>
-              </Card>
-            ))
+                    <span className="rounded-full bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                      {group.tasks.length}
+                    </span>
+                  </button>
+
+                  {/* Tasks table */}
+                  {!isCollapsed && (
+                    <>
+                      {group.tasks.length === 0 ? (
+                        <div className="border-t border-border px-3 py-4 text-center text-xs text-muted-foreground">
+                          No tasks in this workspace
+                        </div>
+                      ) : (
+                        <div className="[&_[data-slot=table-container]]:overflow-clip [&_[data-slot=table-container]]:rounded-b-md">
+                          <Table>
+                            <TableHeader>
+                              <TableRow className="border-border bg-muted/50">
+                                <TableHead className="w-[35%] pl-10 text-xs font-medium text-muted-foreground">
+                                  Task
+                                </TableHead>
+                                <TableHead className="w-[15%] text-xs font-medium text-muted-foreground">
+                                  Column
+                                </TableHead>
+                                <TableHead className="w-[15%] text-xs font-medium text-muted-foreground">
+                                  Status
+                                </TableHead>
+                                <TableHead className="w-[20%] text-xs font-medium text-muted-foreground">
+                                  Description
+                                </TableHead>
+                                <TableHead className="w-[15%] text-xs font-medium text-muted-foreground">
+                                  Created
+                                </TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {group.tasks.map((task) => (
+                                  <TableRow
+                                    key={task.id}
+                                    className="cursor-pointer border-border transition-colors hover:bg-muted"
+                                    onClick={() =>
+                                      navigate({
+                                        to: "/workspace/project/$projectId",
+                                        params: { projectId: task.workspaceId },
+                                        search: { tab: "tasks" },
+                                      } as any)
+                                    }
+                                  >
+                                    <TableCell className="pl-10">
+                                      <span className="text-sm font-medium text-foreground">
+                                        {task.title}
+                                      </span>
+                                    </TableCell>
+                                    <TableCell>
+                                      <span className="text-xs text-muted-foreground">
+                                        {task.columnName}
+                                      </span>
+                                    </TableCell>
+                                    <TableCell>
+                                      <span
+                                        className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium text-white"
+                                        style={{ backgroundColor: task.columnColor }}
+                                      >
+                                        {task.columnName}
+                                      </span>
+                                    </TableCell>
+                                    <TableCell>
+                                      <span className="line-clamp-1 text-xs text-muted-foreground">
+                                        {task.description || "--"}
+                                      </span>
+                                    </TableCell>
+                                    <TableCell>
+                                      {task.createdAt ? (
+                                        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                                          <Calendar className="h-3 w-3" />
+                                          {new Date(
+                                            task.createdAt,
+                                          ).toLocaleDateString()}
+                                        </span>
+                                      ) : (
+                                        <span className="text-xs text-muted-foreground/40">
+                                          --
+                                        </span>
+                                      )}
+                                    </TableCell>
+                                  </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              );
+            })
           )}
         </TabsContent>
       </Tabs>

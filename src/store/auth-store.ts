@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from "react";
+import { flowmoStoreClearSession } from "./flowmo-store";
 
 export const AUTH_TOKEN_KEY = "simpleflow_token";
 export const AUTH_STORAGE_KEY = "simpleflow_auth_state";
@@ -71,15 +72,33 @@ function persistState() {
   }
 
   if (state.user) {
+    let existingProfile: Record<string, string> = {};
+    try {
+      const raw = localStorage.getItem(PROFILE_STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as Record<string, string>;
+        // Only merge if it belongs to the same user
+        if (parsed.email === state.user.email) {
+          existingProfile = parsed;
+        }
+      }
+    } catch {
+      existingProfile = {};
+    }
+
     localStorage.setItem(
       PROFILE_STORAGE_KEY,
       JSON.stringify({
+        ...existingProfile,
         firstName: state.user.firstName || "",
         lastName: state.user.lastName || "",
         email: state.user.email || "",
       }),
     );
   }
+
+  // Let non-store consumers (like context providers) react immediately in the same tab.
+  window.dispatchEvent(new Event("simpleflow:auth:changed"));
 }
 
 function emit() {
@@ -110,10 +129,13 @@ const store: AuthStore = {
     if (typeof window !== "undefined") {
       localStorage.removeItem(AUTH_STORAGE_KEY);
       localStorage.removeItem(AUTH_TOKEN_KEY);
+      localStorage.removeItem(PROFILE_STORAGE_KEY);
       localStorage.removeItem("simpleflow_user_id");
       sessionStorage.removeItem(AUTH_TOKEN_KEY);
+      window.dispatchEvent(new Event("simpleflow:auth:changed"));
     }
 
+    flowmoStoreClearSession();
     emit();
   },
 };

@@ -1,81 +1,87 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap");
 @import "tailwindcss";
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --background: #f5f6f8;
+  --background-secondary: #ffffff;
+  --foreground: #121722;
+  --card: var(--background-secondary);
+  --card-foreground: #121722;
+  --popover: #ffffff;
+  --popover-foreground: #121722;
+  --primary: #0077ed;
+  --primary-foreground: #ffffff;
+  --secondary: #edf1f6;
+  --secondary-foreground: #2a3445;
+  --muted: #f2f4f7;
+  --muted-foreground: #667085;
+  --accent: #edf1f6;
+  --accent-foreground: #2a3445;
+  --tertiary: #8f97a3;
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --border: rgba(15, 23, 42, 0.14);
+  --input: rgba(15, 23, 42, 0.14);
+  --ring: rgba(0, 119, 237, 0.38);
+  --chart-1: oklch(0.585 0.200 264);
+  --chart-2: oklch(0.650 0.170 250);
+  --chart-3: oklch(0.520 0.150 280);
+  --chart-4: oklch(0.720 0.140 240);
+  --chart-5: oklch(0.450 0.120 270);
+  --radius: 0.75rem;
+  --sidebar: #f8f9fb;
+  --sidebar-foreground: #121722;
+  --sidebar-primary: #0077ed;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e9eef5;
+  --sidebar-accent-foreground: #1e2939;
+  --sidebar-border: rgba(15, 23, 42, 0.12);
+  --sidebar-ring: rgba(0, 119, 237, 0.38);
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.145 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.145 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.985 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
+  --background: #121722;
+  --background-secondary: #1a2231;
+  --foreground: #f7f9ff;
+  --card: var(--background-secondary);
+  --card-foreground: #f7f9ff;
+  --popover: #1a2231;
+  --popover-foreground: #f7f9ff;
+  --primary: #4aa2ff;
+  --primary-foreground: #081018;
+  --secondary: #232f42;
+  --secondary-foreground: #d8e1f0;
+  --muted: #232f42;
+  --muted-foreground: #9aabc3;
+  --accent: #232f42;
+  --accent-foreground: #d8e1f0;
+  --tertiary: #8b9ab1;
   --destructive: oklch(0.396 0.141 25.723);
   --destructive-foreground: oklch(0.637 0.237 25.331);
-  --border: oklch(0.269 0 0);
-  --input: oklch(0.269 0 0);
-  --ring: oklch(0.439 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(0.269 0 0);
-  --sidebar-ring: oklch(0.439 0 0);
+  --border: rgba(207, 223, 247, 0.2);
+  --input: rgba(207, 223, 247, 0.2);
+  --ring: rgba(74, 162, 255, 0.42);
+  --chart-1: oklch(0.650 0.200 264);
+  --chart-2: oklch(0.720 0.160 250);
+  --chart-3: oklch(0.560 0.140 280);
+  --chart-4: oklch(0.780 0.130 240);
+  --chart-5: oklch(0.500 0.110 270);
+  --sidebar: #111827;
+  --sidebar-foreground: #f7f9ff;
+  --sidebar-primary: #4aa2ff;
+  --sidebar-primary-foreground: #081018;
+  --sidebar-accent: #1f2938;
+  --sidebar-accent-foreground: #f7f9ff;
+  --sidebar-border: rgba(207, 223, 247, 0.15);
+  --sidebar-ring: rgba(74, 162, 255, 0.42);
 }
 
 @theme inline {
   --color-background: var(--background);
+  --color-background-secondary: var(--background-secondary);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
@@ -89,6 +95,7 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  --color-tertiary: var(--tertiary);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);
@@ -116,9 +123,44 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    scrollbar-width: none;          /* Firefox */
+  }
+  *::-webkit-scrollbar {
+    display: none;                  /* Chrome, Safari, Edge */
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    font-family: "DM Sans", sans-serif;
+    font-weight: 400;
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-weight: 600;
+  }
+  h5,
+  h6,
+  strong {
+    font-weight: 500;
+  }
+}
+
+@layer utilities {
+  .page-shell {
+    @apply min-h-full px-5 py-[22px] sm:px-[22px];
+  }
+
+  .section-stack {
+    @apply space-y-3;
+  }
+
+  .section-label {
+    color: var(--color-tertiary);
+    font-size: 10.5px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
   }
 }
 

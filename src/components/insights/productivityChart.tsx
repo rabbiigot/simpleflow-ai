@@ -1,5 +1,3 @@
-"use client";
-
 import {
   Card,
   CardContent,
@@ -18,17 +16,11 @@ import {
   YAxis,
 } from "recharts";
 
-const data = [
-  { day: "Mon", productivity: 75, target: 80 },
-  { day: "Tue", productivity: 82, target: 80 },
-  { day: "Wed", productivity: 78, target: 80 },
-  { day: "Thu", productivity: 85, target: 80 },
-  { day: "Fri", productivity: 88, target: 80 },
-  { day: "Sat", productivity: 72, target: 80 },
-  { day: "Sun", productivity: 70, target: 80 },
-];
+type ProductivityChartProps = {
+  data: Array<{ day: string; productivity: number; target: number }>;
+};
 
-export function ProductivityChart() {
+export function ProductivityChart({ data }: ProductivityChartProps) {
   return (
     <Card className="bg-card">
       <CardHeader>

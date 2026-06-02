@@ -1,10 +1,11 @@
 import {
-  AlarmClockCheck,
   BarChart3,
   HandHeart,
   Layers,
   LayoutDashboard,
+  Megaphone,
   ServerCog,
+  Sparkles,
   Workflow,
 } from "lucide-react";
 import type { NavigationItem } from "../../interface/navigationItems";
@@ -30,16 +31,6 @@ export const navigationSidebarItems: NavigationItem[] = [
     icon: ServerCog,
     href: "/tasks",
   },
-  // {
-  //   name: "Finances",
-  //   icon: Receipt,
-  //   href: "/finances",
-  // },
-  {
-    name: "Time Sheet",
-    icon: AlarmClockCheck,
-    href: "/time-sheet",
-  },
   {
     name: "Insights & Reports",
     icon: BarChart3,
@@ -49,5 +40,15 @@ export const navigationSidebarItems: NavigationItem[] = [
     name: "Automation",
     icon: Workflow,
     href: "/automation",
+  },
+  {
+    name: "Campaign",
+    icon: Megaphone,
+    href: "/campaign",
+  },
+  {
+    name: "Flowmo AI",
+    icon: Sparkles,
+    href: "/flowmo",
   },
 ];

@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { getApiBaseUrl } from "@/lib/backend-api";
 import { Tent } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import NativeSignUp from "./nativeSignIn";
@@ -59,8 +60,7 @@ const SignInContainer: React.FC<SignInContainerProps> = ({
   };
 
   const handleGoogleSignIn = () => {
-    // 👉 Call your Google OAuth flow here
-    console.log("Proceeding with Google Sign-In");
+    window.location.href = `${getApiBaseUrl()}/auth/google`;
   };
 
   // const handleSubmit = async (e: React.FormEvent) => {

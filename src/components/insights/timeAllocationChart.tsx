@@ -1,5 +1,3 @@
-"use client";
-
 import {
   Card,
   CardContent,
@@ -9,14 +7,6 @@ import {
 } from "@/components/ui/card";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 
-const data = [
-  { name: "Development", value: 45 },
-  { name: "Design", value: 20 },
-  { name: "Meetings", value: 15 },
-  { name: "Documentation", value: 12 },
-  { name: "Other", value: 8 },
-];
-
 const COLORS = [
   "var(--chart-1)",
   "var(--chart-2)",
@@ -25,7 +15,11 @@ const COLORS = [
   "var(--chart-5)",
 ];
 
-export function TimeAllocationChart() {
+type TimeAllocationChartProps = {
+  data: Array<{ name: string; value: number }>;
+};
+
+export function TimeAllocationChart({ data }: TimeAllocationChartProps) {
   return (
     <Card className="bg-card">
       <CardHeader>
@@ -46,7 +40,7 @@ export function TimeAllocationChart() {
                 fill="#8884d8"
                 dataKey="value"
               >
-                {data.map((entry, index) => (
+                {data.map((_entry, index) => (
                   <Cell key={`cell-${index}`} fill={COLORS[index]} />
                 ))}
               </Pie>

@@ -1,43 +1,50 @@
-"use client";
-
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowDown, ArrowUp } from "lucide-react";
+import { ArrowDown, ArrowUp, CheckCircle, Clock, Gauge, Timer } from "lucide-react";
 
-const metrics = [
-  {
-    label: "Tasks Completed",
-    value: "127",
-    change: "+12%",
-    positive: true,
-    icon: "✓",
-  },
-  {
-    label: "Hours Tracked",
-    value: "156.5",
-    change: "+8%",
-    positive: true,
-    icon: "⏱",
-  },
-  {
-    label: "Productivity Score",
-    value: "8.4/10",
-    change: "+5%",
-    positive: true,
-    icon: "📊",
-  },
-  {
-    label: "Avg. Task Time",
-    value: "47 min",
-    change: "-3%",
-    positive: false,
-    icon: "⏰",
-  },
-];
+type MetricsOverviewProps = {
+  metrics: {
+    tasksCompleted: number;
+    hoursTracked: number;
+    productivityScore: number;
+    avgTaskMinutes: number;
+  };
+};
 
-export function MetricsOverview() {
+export function MetricsOverview({ metrics }: MetricsOverviewProps) {
+  const cards = [
+    {
+      label: "Tasks Completed",
+      value: String(metrics.tasksCompleted),
+      change: `${metrics.tasksCompleted > 0 ? "+" : ""}${metrics.tasksCompleted}`,
+      positive: metrics.tasksCompleted > 0,
+      icon: CheckCircle,
+    },
+    {
+      label: "Hours Tracked",
+      value: metrics.hoursTracked.toFixed(1),
+      change: `${metrics.hoursTracked > 0 ? "+" : ""}${metrics.hoursTracked.toFixed(1)}`,
+      positive: metrics.hoursTracked > 0,
+      icon: Clock,
+    },
+    {
+      label: "Productivity Score",
+      value: `${metrics.productivityScore}%`,
+      change: `${metrics.productivityScore >= 80 ? "+" : ""}${metrics.productivityScore}`,
+      positive: metrics.productivityScore >= 50,
+      icon: Gauge,
+    },
+    {
+      label: "Avg. Task Time",
+      value: `${metrics.avgTaskMinutes} min`,
+      change: `${metrics.avgTaskMinutes > 0 ? "+" : ""}${metrics.avgTaskMinutes}`,
+      positive: metrics.avgTaskMinutes <= 60,
+      icon: Timer,
+    },
+  ];
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-      {metrics.map((metric) => (
+      {cards.map((metric) => (
         <Card
           key={metric.label}
           className="bg-card hover:shadow-lg transition-shadow"
@@ -52,17 +59,19 @@ export function MetricsOverview() {
                   {metric.value}
                 </p>
               </div>
-              <span className="text-2xl">{metric.icon}</span>
+              <div className="rounded-lg bg-blue-500/10 p-2">
+                <metric.icon className="h-5 w-5 text-blue-500" />
+              </div>
             </div>
             <div className="flex items-center gap-1 mt-4">
               {metric.positive ? (
                 <ArrowUp className="w-4 h-4 text-green-500" />
               ) : (
-                <ArrowDown className="w-4 h-4 text-orange-500" />
+                <ArrowDown className="w-4 h-4 text-indigo-500" />
               )}
               <span
                 className={
-                  metric.positive ? "text-green-500" : "text-orange-500"
+                  metric.positive ? "text-green-500" : "text-indigo-500"
                 }
               >
                 {metric.change}

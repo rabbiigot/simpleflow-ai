@@ -17,7 +17,7 @@ export default function Column({
   tasks: Task[];
 }) {
   return (
-    <div className="w-72 bg-white rounded-md border flex flex-col">
+    <div className="w-72 bg-card rounded-md border flex flex-col">
       {/* Header */}
       <div className="shrink-0 px-3 py-2 font-semibold text-sm border-b">
         {column}

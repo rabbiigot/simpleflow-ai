@@ -1,5 +1,3 @@
-"use client";
-
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,18 +27,31 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textArea";
 import {
+  createTransaction,
+  deleteTransaction,
+  getFinanceSummary,
+  getMonthlyTrend,
+  listTransactions,
+  updateTransaction,
+  type FinanceSummary,
+  type MonthlyTrend,
+  type TransactionData,
+  type TransactionType,
+} from "@/lib/backend-api";
+import {
   ArrowDownRight,
   ArrowUpRight,
   Calendar,
   DollarSign,
   Edit,
   Filter,
+  Loader2,
   Plus,
   Trash2,
   TrendingDown,
   TrendingUp,
 } from "lucide-react";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Bar,
   BarChart,
@@ -57,146 +68,155 @@ import {
   YAxis,
 } from "recharts";
 
-interface Transaction {
-  id: string;
-  type: "income" | "expense";
-  amount: number;
-  category: string;
-  description: string;
-  date: string;
-  goalId?: string;
-  goalTitle?: string;
-  remarks: string;
+const CATEGORY_COLORS: Record<string, string> = {
+  Salary: "#10b981",
+  Rent: "#ef4444",
+  Food: "#f59e0b",
+  Transportation: "#3b82f6",
+  Education: "#8b5cf6",
+  Health: "#06b6d4",
+  Entertainment: "#ec4899",
+  Savings: "#10b981",
+  Utilities: "#f97316",
+  Shopping: "#a855f7",
+  Other: "#6b7280",
+};
+
+function getCategoryColor(name: string, index: number) {
+  const fallbackColors = [
+    "#ef4444",
+    "#10b981",
+    "#f59e0b",
+    "#3b82f6",
+    "#8b5cf6",
+    "#06b6d4",
+    "#ec4899",
+    "#f97316",
+    "#a855f7",
+    "#6b7280",
+  ];
+  return CATEGORY_COLORS[name] || fallbackColors[index % fallbackColors.length];
 }
 
-const mockTransactions: Transaction[] = [
-  {
-    id: "1",
-    type: "income",
-    amount: 3500,
-    category: "Salary",
-    description: "Monthly salary",
-    date: "2024-03-01",
-    remarks: "Regular monthly income",
-  },
-  {
-    id: "2",
-    type: "expense",
-    amount: 1200,
-    category: "Rent",
-    description: "Monthly rent payment",
-    date: "2024-03-01",
-    remarks: "Fixed monthly expense",
-  },
-  {
-    id: "3",
-    type: "expense",
-    amount: 500,
-    category: "Savings",
-    description: "Emergency fund contribution",
-    date: "2024-03-05",
-    goalId: "3",
-    goalTitle: "Save $5000 Emergency Fund",
-    remarks: "Monthly savings goal contribution",
-  },
-  {
-    id: "4",
-    type: "expense",
-    amount: 150,
-    category: "Education",
-    description: "React course subscription",
-    date: "2024-03-10",
-    goalId: "1",
-    goalTitle: "Learn React Development",
-    remarks: "Investment in learning",
-  },
-  {
-    id: "5",
-    type: "expense",
-    amount: 80,
-    category: "Health",
-    description: "Gym membership",
-    date: "2024-03-15",
-    goalId: "2",
-    goalTitle: "Morning Exercise Routine",
-    remarks: "Monthly gym fee",
-  },
-];
-
-const monthlyData = [
-  { month: "Jan", income: 3500, expenses: 2800, savings: 700 },
-  { month: "Feb", income: 3500, expenses: 2900, savings: 600 },
-  { month: "Mar", income: 3500, expenses: 2650, savings: 850 },
-  { month: "Apr", income: 3500, expenses: 2750, savings: 750 },
-  { month: "May", income: 3500, expenses: 2600, savings: 900 },
-];
-
-const expenseCategories = [
-  { name: "Rent", value: 1200, color: "#ef4444" },
-  { name: "Savings", value: 500, color: "#10b981" },
-  { name: "Food", value: 400, color: "#f59e0b" },
-  { name: "Transportation", value: 200, color: "#3b82f6" },
-  { name: "Education", value: 150, color: "#8b5cf6" },
-  { name: "Health", value: 80, color: "#06b6d4" },
-  { name: "Entertainment", value: 120, color: "#ec4899" },
-];
-
 const FinanceContainer = () => {
-  const [transactions, setTransactions] =
-    useState<Transaction[]>(mockTransactions);
+  const [transactions, setTransactions] = useState<TransactionData[]>([]);
+  const [summary, setSummary] = useState<FinanceSummary | null>(null);
+  const [monthlyTrend, setMonthlyTrend] = useState<MonthlyTrend[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [editingTransaction, setEditingTransaction] =
+    useState<TransactionData | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
-  const [newTransaction, setNewTransaction] = useState({
-    type: "expense" as const,
+  const [formData, setFormData] = useState({
+    type: "EXPENSE" as TransactionType,
     amount: "",
     category: "",
     description: "",
-    date: "",
-    goalId: "",
+    date: new Date().toISOString().split("T")[0],
     remarks: "",
   });
 
-  const createTransaction = () => {
-    const transaction: Transaction = {
-      id: Date.now().toString(),
-      ...newTransaction,
-      amount: Number.parseFloat(newTransaction.amount),
-      goalTitle: newTransaction.goalId ? "Associated Goal" : undefined,
-    };
-    setTransactions((prev) => [...prev, transaction]);
-    setNewTransaction({
-      type: "expense",
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const [txResult, summaryResult, trendResult] = await Promise.all([
+        listTransactions({ pageSize: 100 }),
+        getFinanceSummary(),
+        getMonthlyTrend(6),
+      ]);
+      setTransactions(txResult.items);
+      setSummary(summaryResult);
+      setMonthlyTrend(trendResult);
+    } catch (err) {
+      console.error("Failed to load finance data:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const resetForm = () => {
+    setFormData({
+      type: "EXPENSE",
       amount: "",
       category: "",
       description: "",
-      date: "",
-      goalId: "",
+      date: new Date().toISOString().split("T")[0],
       remarks: "",
     });
-    setIsCreateDialogOpen(false);
+    setEditingTransaction(null);
   };
 
-  const totalIncome = transactions
-    .filter((t) => t.type === "income")
-    .reduce((sum, t) => sum + t.amount, 0);
+  const handleSubmit = async () => {
+    try {
+      if (editingTransaction) {
+        await updateTransaction(editingTransaction.id, {
+          type: formData.type,
+          amount: parseFloat(formData.amount),
+          category: formData.category,
+          description: formData.description || undefined,
+          remarks: formData.remarks || undefined,
+          date: formData.date,
+        });
+      } else {
+        await createTransaction({
+          type: formData.type,
+          amount: parseFloat(formData.amount),
+          category: formData.category,
+          description: formData.description || undefined,
+          remarks: formData.remarks || undefined,
+          date: formData.date,
+        });
+      }
+      resetForm();
+      setIsCreateDialogOpen(false);
+      await fetchData();
+    } catch (err) {
+      console.error("Failed to save transaction:", err);
+    }
+  };
 
-  const totalExpenses = transactions
-    .filter((t) => t.type === "expense")
-    .reduce((sum, t) => sum + t.amount, 0);
+  const handleEdit = (tx: TransactionData) => {
+    setEditingTransaction(tx);
+    setFormData({
+      type: tx.type as TransactionType,
+      amount: String(tx.amount),
+      category: tx.category,
+      description: tx.description || "",
+      date: new Date(tx.date).toISOString().split("T")[0],
+      remarks: tx.remarks || "",
+    });
+    setIsCreateDialogOpen(true);
+  };
 
-  const netBalance = totalIncome - totalExpenses;
+  const handleDelete = async (id: number) => {
+    try {
+      await deleteTransaction(id);
+      await fetchData();
+    } catch (err) {
+      console.error("Failed to delete transaction:", err);
+    }
+  };
 
-  const getTransactionIcon = (type: string) => {
-    return type === "income" ? (
-      <ArrowUpRight className="h-4 w-4 text-green-500" />
-    ) : (
-      <ArrowDownRight className="h-4 w-4 text-red-500" />
+  const totalIncome = summary?.totalIncome ?? 0;
+  const totalExpenses = summary?.totalExpenses ?? 0;
+  const netBalance = summary?.netBalance ?? 0;
+  const savingsRate = summary?.savingsRate ?? 0;
+  const expenseCategories = (summary?.categories ?? []).map((c, i) => ({
+    ...c,
+    color: getCategoryColor(c.name, i),
+  }));
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
     );
-  };
-
-  const getAmountColor = (type: string) => {
-    return type === "income" ? "text-green-500" : "text-red-500";
-  };
+  }
 
   return (
     <div className="px-4 py-8 sm:px-6 lg:px-8">
@@ -217,7 +237,10 @@ const FinanceContainer = () => {
           </Button>
           <Dialog
             open={isCreateDialogOpen}
-            onOpenChange={setIsCreateDialogOpen}
+            onOpenChange={(open) => {
+              setIsCreateDialogOpen(open);
+              if (!open) resetForm();
+            }}
           >
             <DialogTrigger asChild>
               <Button className="gap-2">
@@ -227,9 +250,15 @@ const FinanceContainer = () => {
             </DialogTrigger>
             <DialogContent className="max-w-2xl">
               <DialogHeader>
-                <DialogTitle>Add New Transaction</DialogTitle>
+                <DialogTitle>
+                  {editingTransaction
+                    ? "Edit Transaction"
+                    : "Add New Transaction"}
+                </DialogTitle>
                 <DialogDescription>
-                  Record a new income or expense transaction
+                  {editingTransaction
+                    ? "Update the transaction details"
+                    : "Record a new income or expense transaction"}
                 </DialogDescription>
               </DialogHeader>
 
@@ -238,17 +267,17 @@ const FinanceContainer = () => {
                   <div className="space-y-2">
                     <Label htmlFor="type">Transaction Type</Label>
                     <Select
-                      value={newTransaction.type}
-                      onValueChange={(value: any) =>
-                        setNewTransaction((prev) => ({ ...prev, type: value }))
+                      value={formData.type}
+                      onValueChange={(value: TransactionType) =>
+                        setFormData((prev) => ({ ...prev, type: value }))
                       }
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select type" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="income">Income</SelectItem>
-                        <SelectItem value="expense">Expense</SelectItem>
+                        <SelectItem value="INCOME">Income</SelectItem>
+                        <SelectItem value="EXPENSE">Expense</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -260,9 +289,9 @@ const FinanceContainer = () => {
                       type="number"
                       step="0.01"
                       placeholder="0.00"
-                      value={newTransaction.amount}
+                      value={formData.amount}
                       onChange={(e) =>
-                        setNewTransaction((prev) => ({
+                        setFormData((prev) => ({
                           ...prev,
                           amount: e.target.value,
                         }))
@@ -271,14 +300,61 @@ const FinanceContainer = () => {
                   </div>
                 </div>
 
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="category">Category</Label>
+                    <Input
+                      id="category"
+                      placeholder="e.g. Salary, Rent, Food"
+                      value={formData.category}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          category: e.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="date">Date</Label>
+                    <Input
+                      id="date"
+                      type="date"
+                      value={formData.date}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          date: e.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="description">Description</Label>
+                  <Input
+                    id="description"
+                    placeholder="Brief description"
+                    value={formData.description}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        description: e.target.value,
+                      }))
+                    }
+                  />
+                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="remarks">Remarks</Label>
                   <Textarea
                     id="remarks"
-                    placeholder="Additional notes or remarks about this transaction..."
-                    value={newTransaction.remarks}
+                    placeholder="Additional notes..."
+                    value={formData.remarks}
                     onChange={(e) =>
-                      setNewTransaction((prev) => ({
+                      setFormData((prev) => ({
                         ...prev,
                         remarks: e.target.value,
                       }))
@@ -287,12 +363,23 @@ const FinanceContainer = () => {
                 </div>
 
                 <div className="flex gap-2 pt-4">
-                  <Button onClick={createTransaction} className="flex-1">
-                    Add Transaction
+                  <Button
+                    onClick={handleSubmit}
+                    className="flex-1"
+                    disabled={
+                      !formData.amount || !formData.category || !formData.date
+                    }
+                  >
+                    {editingTransaction
+                      ? "Update Transaction"
+                      : "Add Transaction"}
                   </Button>
                   <Button
                     variant="outline"
-                    onClick={() => setIsCreateDialogOpen(false)}
+                    onClick={() => {
+                      setIsCreateDialogOpen(false);
+                      resetForm();
+                    }}
                   >
                     Cancel
                   </Button>
@@ -357,17 +444,14 @@ const FinanceContainer = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-primary">
-              {totalIncome > 0
-                ? Math.round((netBalance / totalIncome) * 100)
-                : 0}
-              %
+              {savingsRate}%
             </div>
             <p className="text-xs text-muted-foreground">Of total income</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Tabs for different views */}
+      {/* Tabs */}
       <Tabs
         value={activeTab}
         onValueChange={setActiveTab}
@@ -381,7 +465,6 @@ const FinanceContainer = () => {
 
         <TabsContent value="overview" className="space-y-6">
           <div className="grid gap-6 lg:grid-cols-2">
-            {/* Monthly Trend */}
             <Card>
               <CardHeader>
                 <CardTitle>Monthly Financial Trend</CardTitle>
@@ -391,50 +474,55 @@ const FinanceContainer = () => {
               </CardHeader>
               <CardContent>
                 <div className="h-80">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={monthlyData}>
-                      <CartesianGrid
-                        strokeDasharray="3 3"
-                        className="stroke-muted"
-                      />
-                      <XAxis
-                        dataKey="month"
-                        className="text-muted-foreground"
-                      />
-                      <YAxis className="text-muted-foreground" />
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: "hsl(var(--card))",
-                          border: "1px solid hsl(var(--border))",
-                          borderRadius: "8px",
-                        }}
-                      />
-                      <Legend />
-                      <Line
-                        type="monotone"
-                        dataKey="income"
-                        stroke="#10b981"
-                        strokeWidth={2}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="expenses"
-                        stroke="#ef4444"
-                        strokeWidth={2}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="savings"
-                        stroke="#3b82f6"
-                        strokeWidth={2}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
+                  {monthlyTrend.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={monthlyTrend}>
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                          className="stroke-muted"
+                        />
+                        <XAxis
+                          dataKey="month"
+                          className="text-muted-foreground"
+                        />
+                        <YAxis className="text-muted-foreground" />
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: "hsl(var(--card))",
+                            border: "1px solid hsl(var(--border))",
+                            borderRadius: "8px",
+                          }}
+                        />
+                        <Legend />
+                        <Line
+                          type="monotone"
+                          dataKey="income"
+                          stroke="#10b981"
+                          strokeWidth={2}
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="expenses"
+                          stroke="#ef4444"
+                          strokeWidth={2}
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="savings"
+                          stroke="#3b82f6"
+                          strokeWidth={2}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-muted-foreground">
+                      No trend data yet. Add some transactions to see trends.
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
 
-            {/* Expense Categories */}
             <Card>
               <CardHeader>
                 <CardTitle>Expense Breakdown</CardTitle>
@@ -444,31 +532,37 @@ const FinanceContainer = () => {
               </CardHeader>
               <CardContent>
                 <div className="h-80">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={expenseCategories}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={120}
-                        paddingAngle={5}
-                        dataKey="value"
-                      >
-                        {expenseCategories.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: "hsl(var(--card))",
-                          border: "1px solid hsl(var(--border))",
-                          borderRadius: "8px",
-                        }}
-                      />
-                      <Legend />
-                    </PieChart>
-                  </ResponsiveContainer>
+                  {expenseCategories.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={expenseCategories}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={60}
+                          outerRadius={120}
+                          paddingAngle={5}
+                          dataKey="value"
+                        >
+                          {expenseCategories.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: "hsl(var(--card))",
+                            border: "1px solid hsl(var(--border))",
+                            borderRadius: "8px",
+                          }}
+                        />
+                        <Legend />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-muted-foreground">
+                      No expense data yet.
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -482,11 +576,17 @@ const FinanceContainer = () => {
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-4">
                     <div className="p-2 rounded-lg bg-muted">
-                      {getTransactionIcon(transaction.type)}
+                      {transaction.type === "INCOME" ? (
+                        <ArrowUpRight className="h-4 w-4 text-green-500" />
+                      ) : (
+                        <ArrowDownRight className="h-4 w-4 text-red-500" />
+                      )}
                     </div>
 
                     <div className="space-y-1">
-                      <h3 className="font-medium">{transaction.description}</h3>
+                      <h3 className="font-medium">
+                        {transaction.description || transaction.category}
+                      </h3>
                       <div className="flex items-center gap-4 text-sm text-muted-foreground">
                         <Badge variant="outline">{transaction.category}</Badge>
                         <div className="flex items-center gap-1">
@@ -496,11 +596,6 @@ const FinanceContainer = () => {
                           </span>
                         </div>
                       </div>
-                      {transaction.goalTitle && (
-                        <div className="text-sm text-muted-foreground">
-                          Related to: {transaction.goalTitle}
-                        </div>
-                      )}
                       {transaction.remarks && (
                         <p className="text-sm text-muted-foreground mt-2">
                           {transaction.remarks}
@@ -511,18 +606,28 @@ const FinanceContainer = () => {
 
                   <div className="flex items-center gap-4">
                     <div
-                      className={`text-lg font-bold ${getAmountColor(
-                        transaction.type
-                      )}`}
+                      className={`text-lg font-bold ${
+                        transaction.type === "INCOME"
+                          ? "text-green-500"
+                          : "text-red-500"
+                      }`}
                     >
-                      {transaction.type === "income" ? "+" : "-"}$
+                      {transaction.type === "INCOME" ? "+" : "-"}$
                       {transaction.amount.toLocaleString()}
                     </div>
                     <div className="flex gap-1">
-                      <Button variant="ghost" size="sm">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleEdit(transaction)}
+                      >
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="sm">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDelete(transaction.id)}
+                      >
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
@@ -561,26 +666,35 @@ const FinanceContainer = () => {
             </CardHeader>
             <CardContent>
               <div className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={monthlyData}>
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      className="stroke-muted"
-                    />
-                    <XAxis dataKey="month" className="text-muted-foreground" />
-                    <YAxis className="text-muted-foreground" />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "hsl(var(--card))",
-                        border: "1px solid hsl(var(--border))",
-                        borderRadius: "8px",
-                      }}
-                    />
-                    <Legend />
-                    <Bar dataKey="income" fill="#10b981" name="Income" />
-                    <Bar dataKey="expenses" fill="#ef4444" name="Expenses" />
-                  </BarChart>
-                </ResponsiveContainer>
+                {monthlyTrend.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={monthlyTrend}>
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        className="stroke-muted"
+                      />
+                      <XAxis
+                        dataKey="month"
+                        className="text-muted-foreground"
+                      />
+                      <YAxis className="text-muted-foreground" />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: "hsl(var(--card))",
+                          border: "1px solid hsl(var(--border))",
+                          borderRadius: "8px",
+                        }}
+                      />
+                      <Legend />
+                      <Bar dataKey="income" fill="#10b981" name="Income" />
+                      <Bar dataKey="expenses" fill="#ef4444" name="Expenses" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex items-center justify-center h-full text-muted-foreground">
+                    No data yet. Add transactions to see analytics.
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>

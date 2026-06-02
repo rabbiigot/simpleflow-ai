@@ -3,23 +3,32 @@ import {
   createRoute,
   createRouter,
   lazyRouteComponent,
+  NotFoundRoute,
   redirect,
 } from "@tanstack/react-router";
+import NotFound from "@/pages/NotFound";
 import { AUTH_TOKEN_KEY } from "@/store/auth-store";
 import RootLayout from "../components/layout/rootLayout";
+import {
+  RouteErrorComponent,
+  RoutePendingComponent,
+} from "@/components/ui/error-boundary";
 const Dashboard = lazyRouteComponent(() => import("@/pages/Dashboard"));
 const Tasks = lazyRouteComponent(() => import("@/pages/Tasks"));
 const Finance = lazyRouteComponent(() => import("@/pages/Finance"));
-const Ananlytics = lazyRouteComponent(() => import("@/pages/Analytics"));
 const Automation = lazyRouteComponent(() => import("@/pages/Automation"));
 const Workspace = lazyRouteComponent(() => import("@/pages/Workspace"));
 const Signup = lazyRouteComponent(() => import("@/pages/Signup"));
 const Social = lazyRouteComponent(() => import("@/pages/Social"));
+const SocialProfile = lazyRouteComponent(() => import("@/pages/SocialProfile"));
+const ProfileSettingsPage = lazyRouteComponent(() => import("@/pages/ProfileSettingsPage"));
 const GetStarted = lazyRouteComponent(() => import("@/pages/GetStarted"));
 const Project = lazyRouteComponent(() => import("@/pages/Projects"));
 const Insights = lazyRouteComponent(() => import("@/pages/Insights"));
-const Timesheet = lazyRouteComponent(() => import("@/pages/Timesheet"));
 const Login = lazyRouteComponent(() => import("@/pages/Login"));
+const VerifyEmail = lazyRouteComponent(() => import("@/pages/VerifyEmail"));
+const Campaign = lazyRouteComponent(() => import("@/pages/Campaign"));
+const FlowmoChat = lazyRouteComponent(() => import("@/pages/FlowmoChat"));
 
 const requireAuth = () => {
   if (typeof window === "undefined") {
@@ -34,6 +43,8 @@ const requireAuth = () => {
 
 const rootRoute = createRootRoute({
   component: RootLayout,
+  errorComponent: RouteErrorComponent,
+  pendingComponent: RoutePendingComponent,
 });
 
 const indexRoute = createRoute({
@@ -54,6 +65,30 @@ const socialRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "social",
   component: Social,
+  beforeLoad: requireAuth,
+});
+
+const socialProfileRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "social/profile",
+  component: SocialProfile,
+  beforeLoad: requireAuth,
+  validateSearch: (search: Record<string, unknown>) => ({
+    tab: (search.tab as string) || undefined,
+  }),
+});
+
+const socialUserProfileRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "social/profile/$userId",
+  component: SocialProfile,
+  beforeLoad: requireAuth,
+});
+
+const profileSettingsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "profile/settings",
+  component: ProfileSettingsPage,
   beforeLoad: requireAuth,
 });
 
@@ -80,8 +115,9 @@ const tasksRoute = createRoute({
 const analyticsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "analytics",
-  component: Ananlytics,
-  beforeLoad: requireAuth,
+  beforeLoad: () => {
+    throw redirect({ to: "/insights" });
+  },
 });
 
 const automationRoute = createRoute({
@@ -110,6 +146,11 @@ const projectRoute = createRoute({
   path: "workspace/project/$projectId",
   component: Project,
   beforeLoad: requireAuth,
+  validateSearch: (search: Record<string, unknown>) => ({
+    tab: (["dashboard", "tasks", "gantt", "channel", "calendar"].includes(search.tab as string)
+      ? search.tab
+      : "dashboard") as "dashboard" | "tasks" | "gantt" | "channel" | "calendar",
+  }),
 });
 
 const SignupRoute = createRoute({
@@ -124,16 +165,33 @@ const LoginRoute = createRoute({
   component: Login,
 });
 
-const TimeSheetRoute = createRoute({
+const VerifyEmailRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: "time-sheet",
-  component: Timesheet,
+  path: "verify-email",
+  component: VerifyEmail,
+  validateSearch: (search: Record<string, unknown>) => ({
+    token: (search.token as string) || "",
+  }),
+});
+
+const campaignRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "campaign",
+  component: Campaign,
+  beforeLoad: requireAuth,
+});
+
+const flowmoRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "flowmo",
+  component: FlowmoChat,
   beforeLoad: requireAuth,
 });
 
 const routeTree = rootRoute.addChildren([
   SignupRoute,
   LoginRoute,
+  VerifyEmailRoute,
   indexRoute,
   dashboardRoute,
   financeRoute,
@@ -143,13 +201,23 @@ const routeTree = rootRoute.addChildren([
   workspaceRoute,
   projectRoute,
   socialRoute,
+  socialProfileRoute,
+  socialUserProfileRoute,
+  profileSettingsRoute,
   getStartedRoute,
   insightsRoute,
-  TimeSheetRoute,
+  campaignRoute,
+  flowmoRoute,
 ]);
+
+const notFoundRoute = new NotFoundRoute({
+  getParentRoute: () => rootRoute,
+  component: NotFound,
+});
 
 const router = createRouter({
   routeTree,
+  notFoundRoute,
 });
 
 export default router;

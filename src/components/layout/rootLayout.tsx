@@ -1,29 +1,47 @@
 import SidebarContainer from "@/components/layout/sidebar/sidebarContainer";
-import { Outlet, useRouter } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { Outlet, useRouterState } from "@tanstack/react-router";
+import { createContext, useContext, useMemo, useState } from "react";
 import FlowmoAssistantContainer from "./AI/flowmoAssistantContainer";
 import HeaderContainer from "./header/headerContainer";
 
+const AiPanelContext = createContext<"expanded" | "collapsed">("collapsed");
+export const useAiPanelState = () => useContext(AiPanelContext);
+
 const RootLayout = () => {
-  const router = useRouter();
-  const pathname = router.state.location.pathname;
   const [sidebarState, setSidebarState] = useState<"expanded" | "collapsed">(
     "expanded",
   );
   const [aiState, setAiState] = useState<"expanded" | "collapsed">("collapsed");
-  const [loggingPages, setLoggingPages] = useState<boolean>(false);
+  const pathname = useRouterState({
+    select: (state) => state.location.pathname,
+  });
 
-  useEffect(() => {
-    if (
+  const routerState = useRouterState();
+  const isNotFound = routerState.statusCode === 404 ||
+    routerState.matches?.some((m) => (m as any).notFoundError != null);
+
+  const KNOWN_PATHS = [
+    "/", "/dashboard", "/social", "/finance", "/tasks",
+    "/automation", "/workspace", "/insights", "/analytics",
+    "/campaign", "/flowmo",
+    "/sign-up", "/login", "/get-started", "/verify-email",
+  ];
+  const isKnownPath = KNOWN_PATHS.some(
+    (p) => pathname === p || pathname.startsWith("/workspace/project/") || pathname.startsWith("/social/profile") || pathname.startsWith("/profile/settings"),
+  );
+
+  const loggingPages = useMemo(() => {
+    return (
       pathname === "/sign-up" ||
       pathname === "/login" ||
-      pathname === "/get-started"
-    ) {
-      setLoggingPages(true);
-    } else {
-      setLoggingPages(false);
-    }
-  }, [pathname, loggingPages]);
+      pathname === "/get-started" ||
+      pathname === "/verify-email" ||
+      isNotFound ||
+      !isKnownPath
+    );
+  }, [pathname, isNotFound, isKnownPath]);
+
+  const isFlowmoPage = pathname === "/flowmo";
 
   const toggleSidebar = () => {
     setSidebarState((prev) => (prev === "expanded" ? "collapsed" : "expanded"));
@@ -43,7 +61,7 @@ const RootLayout = () => {
         <>
           <div className="z-0 w-full h-screen overflow-hidden ">
             <div
-              className={`fixed flex flex-col z-40 left-0 ${
+              className={`fixed flex flex-col z-40 left-0 transition-[width] duration-300 ease-in-out ${
                 sidebarState !== "expanded" ? "w-19" : "w-65"
               } h-screen`}
             >
@@ -56,18 +74,22 @@ const RootLayout = () => {
               </div>
             </div>
             <div
-              className={` z-30 w-full transition-all  ${
-                sidebarState !== "expanded" ? "pl-22 " : "pl-65 "
-              } ${aiState !== "expanded" ? "pr-20" : "pr-100"}`}
+              className={` z-30 w-full transition-all duration-300 ease-in-out ${
+                sidebarState !== "expanded" ? "pl-19 " : "pl-65 "
+              } ${isFlowmoPage ? "pr-0" : aiState !== "expanded" ? "pr-20" : "pr-100"}`}
               style={{ height: "calc(100vh)" }}
             >
-              <div className="relative overflow-y-auto w-full h-full">
-                <Outlet />
+              <AiPanelContext.Provider value={aiState}>
+                <div className="@container/main relative h-full w-full overflow-y-auto bg-background">
+                  <Outlet />
+                </div>
+              </AiPanelContext.Provider>
+            </div>
+            {!isFlowmoPage && (
+              <div className="relative flex-1 ">
+                <FlowmoAssistantContainer aiState={aiState} toggleAI={toggleAI} />
               </div>
-            </div>
-            <div className="relative flex-1 ">
-              <FlowmoAssistantContainer aiState={aiState} toggleAI={toggleAI} />
-            </div>
+            )}
           </div>
         </>
       )}

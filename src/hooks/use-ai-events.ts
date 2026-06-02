@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { getApiBaseUrl } from "@/lib/backend-api";
 
 export type AiSocketEvent = {
@@ -23,45 +23,70 @@ export function useAiEvents() {
   const [isConnected, setIsConnected] = useState(false);
 
   const wsUrl = useMemo(() => buildWsUrl(), []);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
+  const reconnectAttemptsRef = useRef(0);
+  const MAX_RECONNECT = 5;
 
   useEffect(() => {
-    const socket = new WebSocket(wsUrl);
+    function connect() {
+      const socket = new WebSocket(wsUrl);
 
-    socket.onopen = () => {
-      setIsConnected(true);
-    };
+      socket.onopen = () => {
+        setIsConnected(true);
+        reconnectAttemptsRef.current = 0;
+      };
 
-    socket.onclose = () => {
-      setIsConnected(false);
-    };
+      socket.onclose = () => {
+        setIsConnected(false);
+        if (reconnectAttemptsRef.current < MAX_RECONNECT) {
+          const delay = Math.min(
+            3000 * Math.pow(2, reconnectAttemptsRef.current),
+            30000,
+          );
+          reconnectTimeoutRef.current = setTimeout(() => {
+            reconnectAttemptsRef.current++;
+            connect();
+          }, delay);
+        }
+      };
 
-    socket.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data) as AiSocketEvent & {
-          payload?: { requestId?: string; chatId?: string; batchId?: string };
-          chatId?: string;
-          batchId?: string;
-        };
+      socket.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data) as AiSocketEvent & {
+            payload?: {
+              requestId?: string;
+              chatId?: string;
+              batchId?: string;
+            };
+            chatId?: string;
+            batchId?: string;
+          };
 
-        const normalized: AiSocketEvent = {
-          ...data,
-          requestId: data.requestId || data.payload?.requestId,
-        };
+          const normalized: AiSocketEvent = {
+            ...data,
+            requestId: data.requestId || data.payload?.requestId,
+          };
 
-        setEvents((prev) => [normalized, ...prev].slice(0, 50));
-      } catch {
-        setEvents((prev) => [
-          {
-            type: "raw_message",
-            timestamp: new Date().toISOString(),
-            payload: event.data,
-          },
-          ...prev,
-        ]);
-      }
-    };
+          setEvents((prev) => [normalized, ...prev].slice(0, 50));
+        } catch {
+          setEvents((prev) => [
+            {
+              type: "raw_message",
+              timestamp: new Date().toISOString(),
+              payload: event.data,
+            },
+            ...prev,
+          ]);
+        }
+      };
+
+      return socket;
+    }
+
+    const socket = connect();
 
     return () => {
+      clearTimeout(reconnectTimeoutRef.current);
       socket.close();
     };
   }, [wsUrl]);

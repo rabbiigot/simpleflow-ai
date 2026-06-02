@@ -1,18 +1,30 @@
-"use client";
-
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -20,538 +32,768 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  AlertCircle,
-  CheckCircle,
+  createAutomation,
+  deleteAutomation,
+  getCurrentUserId,
+  getAutomationLogs,
+  listAutomations,
+  listWorkspaces,
+  testAutomation,
+  toggleAutomationStatus,
+  updateAutomation,
+  type AutomationActionType,
+  type AutomationData,
+  type AutomationLogEntry,
+  type AutomationTriggerType,
+  type Workspace,
+} from "@/lib/backend-api";
+import {
+  ArrowRight,
+  ChevronLeft,
+  ChevronRight,
+  CirclePause,
   Clock,
   Edit2,
+  Filter,
+  FolderOpen,
+  Loader2,
+  MoreHorizontal,
   Play,
   Plus,
   Trash2,
-  TrendingUp,
   Zap,
 } from "lucide-react";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
+import AutomationHistory from "./AutomationHistory";
+import { NODE_ICONS, NODE_LABELS } from "./workflow-builder/constants";
+import { WorkflowBuilder } from "./workflow-builder";
 
-interface Automation {
-  id: string;
-  name: string;
-  trigger: string;
-  action: string;
-  frequency: string;
-  isActive: boolean;
-  lastRun?: string;
-  nextRun?: string;
-}
-
-const mockAutomations: Automation[] = [
-  {
-    id: "1",
-    name: "Daily Morning Standup",
-    trigger: "Time-based",
-    action: "Create daily tasks at 6:00 AM",
-    frequency: "Every day",
-    isActive: true,
-    lastRun: "Today at 6:00 AM",
-    nextRun: "Tomorrow at 6:00 AM",
-  },
-  {
-    id: "2",
-    name: "Weekly Progress Report",
-    trigger: "Schedule-based",
-    action: "Generate weekly analytics report",
-    frequency: "Every Monday",
-    isActive: true,
-    lastRun: "Mon at 9:00 AM",
-    nextRun: "Next Monday at 9:00 AM",
-  },
-  {
-    id: "3",
-    name: "Expense Reminder",
-    trigger: "Event-based",
-    action: "Send expense tracking reminder",
-    frequency: "Every Friday",
-    isActive: false,
-    lastRun: "Fri, Nov 1 at 5:00 PM",
-    nextRun: "Disabled",
-  },
-];
-
-const mockTriggers = [
-  { id: "time", label: "Time-based", description: "Execute at specific times" },
-  {
-    id: "event",
-    label: "Event-based",
-    description: "Execute when an event occurs",
-  },
-  {
-    id: "schedule",
-    label: "Schedule-based",
-    description: "Execute on recurring dates",
-  },
-  {
-    id: "goal",
-    label: "Goal-based",
-    description: "Execute based on goal progress",
-  },
-];
-
-const mockActions = [
-  "Create daily tasks",
-  "Send notification reminder",
-  "Generate report",
-  "Update task status",
-  "Log financial transaction",
-  "Calculate metrics",
-  "Archive completed items",
-];
-
-const mockFrequencies = [
-  "Every day",
-  "Every weekday",
-  "Every weekend",
-  "Every week",
-  "Every Monday",
-  "Every Tuesday",
-  "Every Wednesday",
-  "Every Thursday",
-  "Every Friday",
-  "Every month",
-  "Custom",
-];
+// ---------------------------------------------------------------------------
+// Main Container
+// ---------------------------------------------------------------------------
 
 export default function AutomationContainer() {
-  const [automations, setAutomations] = useState<Automation[]>(mockAutomations);
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [formData, setFormData] = useState({
-    name: "",
-    trigger: "",
-    action: "",
-    frequency: "",
-  });
+  const [automations, setAutomations] = useState<AutomationData[]>([]);
+  const [logs, setLogs] = useState<AutomationLogEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [logsLoading, setLogsLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState("automations");
+  const [editingAutomation, setEditingAutomation] = useState<AutomationData | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<AutomationData | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [selectedAutomation, setSelectedAutomation] = useState<AutomationData | null>(null);
+  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
+  const [filterWorkspaceId, setFilterWorkspaceId] = useState<string>("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 8;
 
-  const handleCreateAutomation = () => {
-    if (
-      formData.name &&
-      formData.trigger &&
-      formData.action &&
-      formData.frequency
-    ) {
-      const newAutomation: Automation = {
-        id: String(automations.length + 1),
-        name: formData.name,
-        trigger: formData.trigger,
-        action: formData.action,
-        frequency: formData.frequency,
-        isActive: true,
-        lastRun: "Just now",
-        nextRun: "In 24 hours",
-      };
-      setAutomations([...automations, newAutomation]);
-      setFormData({ name: "", trigger: "", action: "", frequency: "" });
-      setIsCreateDialogOpen(false);
+  // ---- Data fetching ----
+
+  const fetchAutomations = useCallback(async () => {
+    setLoading(true);
+    try {
+      const userId = getCurrentUserId();
+      const result = await listAutomations(
+        userId ? { userId } : undefined,
+      );
+      setAutomations(result.items ?? []);
+    } catch (err) {
+      console.error("Failed to load automations", err);
+      toast.error("No automations found. Create one to get started!");
+      setAutomations([]);
+    } finally {
+      setLoading(false);
     }
-  };
+  }, []);
 
-  const handleToggleAutomation = (id: string) => {
-    setAutomations(
-      automations.map((automation) =>
-        automation.id === id
-          ? { ...automation, isActive: !automation.isActive }
-          : automation,
-      ),
-    );
-  };
+  const fetchAllLogs = useCallback(async () => {
+    setLogsLoading(true);
+    try {
+      const allLogs: AutomationLogEntry[] = [];
+      for (const auto of automations) {
+        try {
+          const autoLogs = await getAutomationLogs(auto.id);
+          const enriched = autoLogs.map((l) => ({
+            ...l,
+            automationId: auto.id,
+            automationName: auto.name,
+          }));
+          allLogs.push(...enriched);
+        } catch {
+          // Skip individual failures
+        }
+      }
+      // Sort by most recent first
+      allLogs.sort(
+        (a, b) =>
+          new Date(b.executedAt).getTime() - new Date(a.executedAt).getTime(),
+      );
+      setLogs(allLogs);
+    } catch {
+      toast.error("No execution history available yet.");
+    } finally {
+      setLogsLoading(false);
+    }
+  }, [automations]);
 
-  const handleDeleteAutomation = (id: string) => {
-    setAutomations(automations.filter((automation) => automation.id !== id));
-  };
+  useEffect(() => {
+    fetchAutomations();
+    listWorkspaces()
+      .then(setWorkspaces)
+      .catch(() => setWorkspaces([]));
+  }, [fetchAutomations]);
 
-  const activeCount = automations.filter((a) => a.isActive).length;
+  useEffect(() => {
+    if (activeTab === "history" && automations.length > 0) {
+      fetchAllLogs();
+    }
+  }, [activeTab, automations.length, fetchAllLogs]);
+
+  // ---- Toggle status ----
+
+  async function handleToggle(automation: AutomationData) {
+    const newStatus = automation.status === "ACTIVE" ? "INACTIVE" : "ACTIVE";
+    try {
+      await toggleAutomationStatus(automation.id, newStatus as "ACTIVE" | "INACTIVE");
+      setAutomations((prev) =>
+        prev.map((a) =>
+          a.id === automation.id ? { ...a, status: newStatus as AutomationData["status"] } : a,
+        ),
+      );
+      toast.success(
+        `Automation ${newStatus === "ACTIVE" ? "enabled" : "disabled"}`,
+      );
+    } catch {
+      toast.error("Failed to toggle automation status");
+    }
+  }
+
+  // ---- Delete ----
+
+  async function handleDelete() {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await deleteAutomation(deleteTarget.id);
+      setAutomations((prev) => prev.filter((a) => a.id !== deleteTarget.id));
+      toast.success("Automation deleted");
+      setDeleteTarget(null);
+    } catch {
+      toast.error("Failed to delete automation");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  // ---- Test fire ----
+
+  async function handleTest(automation: AutomationData) {
+    try {
+      const result = await testAutomation(automation.id);
+      if (result.success) {
+        toast.success(result.message);
+      } else {
+        toast.error(result.message);
+      }
+    } catch {
+      toast.error("Failed to test automation");
+    }
+  }
+
+  // ---- Save (create or update) ----
+
+  async function handleSave(data: {
+    name: string;
+    description: string;
+    trigger?: { type: AutomationTriggerType; config?: Record<string, unknown> };
+    actions: Array<{
+      type: AutomationActionType;
+      config?: Record<string, unknown>;
+      sortOrder: number;
+    }>;
+  }) {
+    setSaving(true);
+    try {
+      if (editingAutomation) {
+        await updateAutomation(editingAutomation.id, {
+          name: data.name,
+          description: data.description,
+          trigger: data.trigger,
+          actions: data.actions,
+        });
+        toast.success("Automation updated");
+      } else {
+        const userId = getCurrentUserId();
+        await createAutomation({
+          name: data.name,
+          description: data.description,
+          userId,
+          trigger: data.trigger,
+          actions: data.actions,
+        });
+        toast.success("Automation created");
+      }
+      setEditingAutomation(null);
+      setActiveTab("automations");
+      fetchAutomations();
+    } catch {
+      toast.error(
+        editingAutomation
+          ? "Failed to update automation"
+          : "Failed to create automation",
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  // ---- Edit ----
+
+  function handleEdit(automation: AutomationData) {
+    setEditingAutomation(automation);
+    setActiveTab("create");
+  }
+
+  function handleCreateNew() {
+    setEditingAutomation(null);
+    setActiveTab("create");
+  }
+
+  // ---- Stats ----
+
+  const activeCount = automations.filter((a) => a.status === "ACTIVE").length;
+  const inactiveCount = automations.filter((a) => a.status === "INACTIVE").length;
+  const totalRuns = automations.reduce((sum, a) => sum + (a.runCount ?? 0), 0);
+
+  // Filter automations by workspace — checks if any action's config references the workspace
+  const filteredAutomations = filterWorkspaceId === "all"
+    ? automations
+    : automations.filter((a) =>
+        a.actions.some((action) => {
+          const cfg = action.config as Record<string, unknown> | null;
+          return (
+            String(cfg?.workspaceId ?? "") === filterWorkspaceId ||
+            String(cfg?.boardId ?? "") === filterWorkspaceId
+          );
+        }) ||
+        (a.trigger?.config as Record<string, unknown> | null)?.boardId === filterWorkspaceId ||
+        (a.trigger?.config as Record<string, unknown> | null)?.workspaceId === filterWorkspaceId,
+      );
 
   return (
-    <div className="px-4 py-8 sm:px-6 lg:px-8">
+    <div className="page-shell">
       {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center gap-3 mb-2">
-          <Zap className="h-8 w-8 text-primary" />
-          <h1 className="text-3xl font-bold">Automations</h1>
-        </div>
+      <div className="mb-6">
+        <p className="section-label mb-1">Automation</p>
+        <h1 className="text-3xl font-bold mb-2">My Workflows</h1>
         <p className="text-muted-foreground text-pretty">
-          Automate your daily routines and tasks to save time and stay
-          consistent with your goals.
+          Build automated workflows that trigger actions when events happen in
+          your workspace.
         </p>
       </div>
 
       {/* Stats Overview */}
-      <div className="grid gap-6 mb-8 sm:grid-cols-3">
+      <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Total Automations
-            </CardTitle>
-            <Zap className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-primary">
-              {automations.length}
+          <CardContent className="flex items-center gap-4 py-4">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+              <Zap className="h-5 w-5 text-primary" />
             </div>
-            <p className="text-xs text-muted-foreground">
-              {activeCount} active
-            </p>
+            <div>
+              <p className="text-2xl font-bold text-primary">
+                {automations.length}
+              </p>
+              <p className="text-[10px] text-muted-foreground">
+                Total Automations
+              </p>
+            </div>
           </CardContent>
         </Card>
-
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Active Automations
-            </CardTitle>
-            <Play className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-primary">{activeCount}</div>
-            <p className="text-xs text-muted-foreground">Running smoothly</p>
+          <CardContent className="flex items-center gap-4 py-4">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-500/10">
+              <Play className="h-5 w-5 text-green-500" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-green-600">
+                {activeCount}
+              </p>
+              <p className="text-[10px] text-muted-foreground">Active</p>
+            </div>
           </CardContent>
         </Card>
-
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Time Saved</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-primary">12h</div>
-            <p className="text-xs text-muted-foreground">This month</p>
+          <CardContent className="flex items-center gap-4 py-4">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gray-500/10">
+              <CirclePause className="h-5 w-5 text-gray-500" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-gray-600">
+                {inactiveCount}
+              </p>
+              <p className="text-[10px] text-muted-foreground">Inactive</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="flex items-center gap-4 py-4">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+              <Clock className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-primary">{totalRuns}</p>
+              <p className="text-[10px] text-muted-foreground">Total Runs</p>
+            </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Tabs Section */}
-      <Tabs defaultValue="active" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="active">Active Automations</TabsTrigger>
-          <TabsTrigger value="templates">Templates</TabsTrigger>
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-3">
+        <TabsList data-tour="automation-tabs">
+          <TabsTrigger value="automations">My Automations</TabsTrigger>
+          <TabsTrigger value="create">
+            {editingAutomation ? "Edit" : "Create"}
+          </TabsTrigger>
           <TabsTrigger value="history">History</TabsTrigger>
         </TabsList>
 
-        {/* Active Automations Tab */}
-        <TabsContent value="active" className="space-y-4">
-          <div className="flex justify-between items-center">
+        {/* ---- Tab 1: My Automations ---- */}
+        <TabsContent value="automations" className="space-y-4">
+          <div className="flex items-center justify-between gap-3">
             <h2 className="text-xl font-semibold">Your Automations</h2>
-            <Dialog
-              open={isCreateDialogOpen}
-              onOpenChange={setIsCreateDialogOpen}
-            >
-              <DialogTrigger asChild>
-                <Button className="gap-2">
-                  <Plus className="h-4 w-4" />
-                  Create Automation
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                  <DialogTitle>Create New Automation</DialogTitle>
-                  <DialogDescription>
-                    Set up a new automation to streamline your workflow.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="automation-name">Automation Name</Label>
-                    <Input
-                      id="automation-name"
-                      placeholder="e.g., Daily Morning Tasks"
-                      value={formData.name}
-                      onChange={(e) =>
-                        setFormData({ ...formData, name: e.target.value })
-                      }
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="trigger">Trigger Type</Label>
-                    <Select
-                      value={formData.trigger}
-                      onValueChange={(value) =>
-                        setFormData({ ...formData, trigger: value })
-                      }
-                    >
-                      <SelectTrigger id="trigger">
-                        <SelectValue placeholder="Select trigger type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {mockTriggers.map((trigger) => (
-                          <SelectItem key={trigger.id} value={trigger.label}>
-                            {trigger.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="action">Action</Label>
-                    <Select
-                      value={formData.action}
-                      onValueChange={(value) =>
-                        setFormData({ ...formData, action: value })
-                      }
-                    >
-                      <SelectTrigger id="action">
-                        <SelectValue placeholder="Select action" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {mockActions.map((action) => (
-                          <SelectItem key={action} value={action}>
-                            {action}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="frequency">Frequency</Label>
-                    <Select
-                      value={formData.frequency}
-                      onValueChange={(value) =>
-                        setFormData({ ...formData, frequency: value })
-                      }
-                    >
-                      <SelectTrigger id="frequency">
-                        <SelectValue placeholder="Select frequency" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {mockFrequencies.map((freq) => (
-                          <SelectItem key={freq} value={freq}>
-                            {freq}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <Button onClick={handleCreateAutomation} className="w-full">
-                    Create Automation
-                  </Button>
-                </div>
-              </DialogContent>
-            </Dialog>
+            <div className="flex items-center gap-2">
+              {workspaces.length > 0 && (
+                <Select value={filterWorkspaceId} onValueChange={(v) => { setFilterWorkspaceId(v); setCurrentPage(1); }}>
+                  <SelectTrigger className="h-9 w-[180px] text-xs">
+                    <Filter className="mr-1.5 h-3.5 w-3.5 text-muted-foreground" />
+                    <SelectValue placeholder="Filter workspace" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Workspaces</SelectItem>
+                    {workspaces.map((ws) => (
+                      <SelectItem key={ws.id} value={ws.id}>
+                        {ws.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+              <Button className="gap-2" onClick={handleCreateNew}>
+                <Plus className="h-4 w-4" />
+                Create Automation
+              </Button>
+            </div>
           </div>
 
-          {automations.length === 0 ? (
-            <Card className="text-center py-12">
-              <Zap className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-50" />
-              <p className="text-muted-foreground">
-                No automations yet. Create one to get started!
-              </p>
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              <span className="ml-3 text-muted-foreground">Loading automations...</span>
+            </div>
+          ) : filteredAutomations.length === 0 ? (
+            <Card>
+              <CardContent className="py-12 text-center">
+                <Zap className="mx-auto mb-4 h-12 w-12 text-muted-foreground opacity-50" />
+                <p className="text-muted-foreground">
+                  {filterWorkspaceId !== "all"
+                    ? "No automations found for this workspace."
+                    : "No automations yet. Create one to get started!"}
+                </p>
+              </CardContent>
             </Card>
           ) : (
-            <div className="grid gap-4">
-              {automations.map((automation) => (
-                <Card
-                  key={automation.id}
-                  className="hover:border-primary/50 transition-colors"
-                >
-                  <CardContent className="pt-6">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1 space-y-2">
-                        <div className="flex items-center gap-3">
-                          <h3 className="font-semibold text-lg">
-                            {automation.name}
-                          </h3>
-                          <Badge
-                            variant={
-                              automation.isActive ? "default" : "secondary"
-                            }
+            <>
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Trigger</TableHead>
+                      <TableHead>Actions</TableHead>
+                      <TableHead>Runs</TableHead>
+                      <TableHead>Last Run</TableHead>
+                      <TableHead className="text-center">Enabled</TableHead>
+                      <TableHead className="text-right" />
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredAutomations
+                      .slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
+                      .map((automation) => {
+                        const isActive = automation.status === "ACTIVE";
+                        const isError = automation.status === "ERROR";
+                        const triggerType = automation.trigger?.type;
+                        const TriggerIcon = triggerType ? NODE_ICONS[triggerType] : Zap;
+                        const triggerLabel = triggerType ? NODE_LABELS[triggerType] : "No trigger";
+                        return (
+                          <TableRow
+                            key={automation.id}
+                            className="cursor-pointer"
+                            onClick={() => setSelectedAutomation(automation)}
                           >
-                            {automation.isActive ? "Active" : "Inactive"}
-                          </Badge>
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          <span className="font-medium">Trigger:</span>{" "}
-                          {automation.trigger}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          <span className="font-medium">Action:</span>{" "}
-                          {automation.action}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          <span className="font-medium">Frequency:</span>{" "}
-                          {automation.frequency}
-                        </p>
-                        <div className="flex flex-col gap-1 pt-2 text-xs text-muted-foreground">
-                          {automation.lastRun && (
-                            <div className="flex items-center gap-2">
-                              <CheckCircle className="h-3 w-3" />
-                              Last run: {automation.lastRun}
-                            </div>
-                          )}
-                          {automation.nextRun && (
-                            <div className="flex items-center gap-2">
-                              <Clock className="h-3 w-3" />
-                              Next run: {automation.nextRun}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="flex flex-col gap-2">
-                        <Switch
-                          checked={automation.isActive}
-                          onCheckedChange={() =>
-                            handleToggleAutomation(automation.id)
-                          }
-                          className="h-6 w-11"
-                        />
-                        <Button variant="ghost" size="sm">
-                          <Edit2 className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDeleteAutomation(automation.id)}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </TabsContent>
-
-        {/* Templates Tab */}
-        <TabsContent value="templates" className="space-y-4">
-          <h2 className="text-xl font-semibold">Automation Templates</h2>
-          <p className="text-muted-foreground mb-4">
-            Choose from pre-built templates to quickly set up common
-            automations.
-          </p>
-          <div className="grid gap-4 md:grid-cols-2">
-            {[
-              {
-                name: "Daily Standup",
-                description: "Create daily tasks every morning",
-                icon: Clock,
-              },
-              {
-                name: "Weekly Review",
-                description: "Generate progress report every week",
-                icon: TrendingUp,
-              },
-              {
-                name: "Expense Tracker",
-                description: "Remind to log expenses on Fridays",
-                icon: AlertCircle,
-              },
-              {
-                name: "Goal Progress",
-                description: "Update goal metrics automatically",
-                icon: CheckCircle,
-              },
-            ].map((template) => {
-              const IconComponent = template.icon;
-              return (
-                <Card
-                  key={template.name}
-                  className="hover:border-primary/50 cursor-pointer transition-colors"
-                >
-                  <CardContent className="pt-6">
-                    <div className="flex items-start gap-4">
-                      <div className="p-2 rounded-lg bg-primary/10">
-                        <IconComponent className="h-6 w-6 text-primary" />
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="font-semibold">{template.name}</h3>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {template.description}
-                        </p>
-                        <Button
-                          size="sm"
-                          className="mt-3 bg-transparent"
-                          variant="outline"
-                        >
-                          Use Template
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        </TabsContent>
-
-        {/* History Tab */}
-        <TabsContent value="history" className="space-y-4">
-          <h2 className="text-xl font-semibold">Automation History</h2>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="space-y-4">
-                {[
-                  {
-                    action: "Daily Morning Standup executed successfully",
-                    time: "Today at 6:00 AM",
-                    status: "success",
-                  },
-                  {
-                    action: "Weekly Progress Report generated",
-                    time: "Mon at 9:00 AM",
-                    status: "success",
-                  },
-                  {
-                    action: "Expense Reminder skipped (automation disabled)",
-                    time: "Last Friday at 5:00 PM",
-                    status: "warning",
-                  },
-                  {
-                    action: "Goal Progress update completed",
-                    time: "Nov 4 at 11:30 AM",
-                    status: "success",
-                  },
-                ].map((entry, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-start gap-4 pb-4 border-b last:border-b-0"
-                  >
-                    <div
-                      className={`p-2 rounded-lg ${
-                        entry.status === "success"
-                          ? "bg-green-500/10"
-                          : "bg-yellow-500/10"
-                      }`}
-                    >
-                      {entry.status === "success" ? (
-                        <CheckCircle
-                          className={`h-5 w-5 ${
-                            entry.status === "success"
-                              ? "text-green-500"
-                              : "text-yellow-500"
-                          }`}
-                        />
-                      ) : (
-                        <AlertCircle className="h-5 w-5 text-yellow-500" />
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">{entry.action}</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {entry.time}
-                      </p>
-                    </div>
-                  </div>
-                ))}
+                            <TableCell>
+                              <div className="min-w-0">
+                                <p className="text-sm font-medium truncate max-w-[220px]">{automation.name}</p>
+                                {automation.description && (
+                                  <p className="text-xs text-muted-foreground truncate max-w-[220px]">{automation.description}</p>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge
+                                variant={isError ? "destructive" : isActive ? "active" : "editing"}
+                                className="text-[10px] px-1.5 py-0"
+                              >
+                                {automation.status}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-1.5">
+                                <div className="flex h-5 w-5 items-center justify-center rounded bg-primary/10">
+                                  <TriggerIcon className="h-3 w-3 text-primary" />
+                                </div>
+                                <span className="text-xs text-muted-foreground">{triggerLabel}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <span className="text-xs text-muted-foreground">
+                                {automation.actions.length} action{automation.actions.length !== 1 ? "s" : ""}
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                                <Play className="h-2.5 w-2.5" />
+                                {automation.runCount ?? 0}
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              <span className="text-xs text-muted-foreground">
+                                {automation.lastRunAt ? formatRelativeTime(automation.lastRunAt) : "—"}
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
+                              <Switch
+                                checked={isActive}
+                                onCheckedChange={() => handleToggle(automation)}
+                                className="scale-90"
+                              />
+                            </TableCell>
+                            <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => handleEdit(automation)}>
+                                    <Edit2 className="h-3.5 w-3.5 mr-2" />
+                                    Edit
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeleteTarget(automation)}>
+                                    <Trash2 className="h-3.5 w-3.5 mr-2" />
+                                    Delete
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                  </TableBody>
+                </Table>
               </div>
-            </CardContent>
-          </Card>
+
+              {/* Pagination */}
+              {filteredAutomations.length > PAGE_SIZE && (
+                <div className="flex items-center justify-between pt-2">
+                  <p className="text-xs text-muted-foreground">
+                    Showing {(currentPage - 1) * PAGE_SIZE + 1}–
+                    {Math.min(currentPage * PAGE_SIZE, filteredAutomations.length)} of{" "}
+                    {filteredAutomations.length}
+                  </p>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 w-8 p-0"
+                      disabled={currentPage <= 1}
+                      onClick={() => setCurrentPage((p) => p - 1)}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    {Array.from(
+                      { length: Math.ceil(filteredAutomations.length / PAGE_SIZE) },
+                      (_, i) => i + 1,
+                    ).map((page) => (
+                      <Button
+                        key={page}
+                        variant={page === currentPage ? "default" : "outline"}
+                        size="sm"
+                        className="h-8 w-8 p-0 text-xs"
+                        onClick={() => setCurrentPage(page)}
+                      >
+                        {page}
+                      </Button>
+                    ))}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 w-8 p-0"
+                      disabled={currentPage >= Math.ceil(filteredAutomations.length / PAGE_SIZE)}
+                      onClick={() => setCurrentPage((p) => p + 1)}
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Preview Dialog */}
+          <AutomationPreview
+            automation={selectedAutomation}
+            onEdit={() => { handleEdit(selectedAutomation!); setSelectedAutomation(null); }}
+            onTest={() => { if (selectedAutomation) handleTest(selectedAutomation); }}
+            onClose={() => setSelectedAutomation(null)}
+          />
+        </TabsContent>
+
+        {/* ---- Tab 2: Create / Edit ---- */}
+        <TabsContent value="create" className="min-h-[600px]">
+          <WorkflowBuilder
+            key={editingAutomation?.id ?? "new"}
+            initial={editingAutomation}
+            onSave={handleSave}
+            saving={saving}
+          />
+        </TabsContent>
+
+        {/* ---- Tab 3: History ---- */}
+        <TabsContent value="history" className="space-y-4">
+          <h2 className="text-xl font-semibold">Execution History</h2>
+          <AutomationHistory logs={logs} loading={logsLoading} />
         </TabsContent>
       </Tabs>
+
+      {/* Delete confirmation dialog */}
+      <Dialog
+        open={deleteTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Automation</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete &ldquo;{deleteTarget?.name}
+              &rdquo;? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteTarget(null)}
+              disabled={deleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={deleting}
+            >
+              {deleting ? "Deleting..." : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
+}
+
+// ---------------------------------------------------------------------------
+// Automation Preview
+// ---------------------------------------------------------------------------
+
+function AutomationPreview({
+  automation,
+  onEdit,
+  onTest,
+  onClose,
+}: {
+  automation: AutomationData | null;
+  onEdit: () => void;
+  onTest: () => void;
+  onClose: () => void;
+}) {
+  if (!automation) return null;
+
+  const isActive = automation.status === "ACTIVE";
+  const isError = automation.status === "ERROR";
+  const triggerType = automation.trigger?.type;
+  const TriggerIcon = triggerType ? NODE_ICONS[triggerType] : Zap;
+  const triggerLabel = triggerType ? NODE_LABELS[triggerType] : "No trigger";
+  const triggerConfig = automation.trigger?.config;
+
+  return (
+    <Dialog open={!!automation} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            {automation.name}
+            <Badge
+              variant={isError ? "destructive" : isActive ? "active" : "editing"}
+              className="text-[10px] px-1.5 py-0"
+            >
+              {automation.status}
+            </Badge>
+          </DialogTitle>
+          {automation.description && (
+            <DialogDescription>{automation.description}</DialogDescription>
+          )}
+        </DialogHeader>
+
+        <div className="space-y-4">
+          {/* Workflow flow */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <div className="flex items-center gap-1.5 rounded-md border bg-blue-500/5 border-blue-500/20 px-2 py-1">
+              <TriggerIcon className="h-3.5 w-3.5 text-blue-500 shrink-0" />
+              <span className="text-xs font-medium">{triggerLabel}</span>
+            </div>
+
+            {automation.actions.length > 0 && (
+              <ArrowRight className="h-3 w-3 text-muted-foreground shrink-0" />
+            )}
+
+            {[...automation.actions]
+              .sort((a, b) => a.sortOrder - b.sortOrder)
+              .map((action, idx) => {
+                const ActionIcon = NODE_ICONS[action.type] ?? Zap;
+                const actionLabel = NODE_LABELS[action.type] ?? action.type;
+                return (
+                  <div key={action.id} className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 rounded-md border bg-green-500/5 border-green-500/20 px-2 py-1">
+                      <ActionIcon className="h-3.5 w-3.5 text-green-500 shrink-0" />
+                      <span className="text-xs font-medium">{actionLabel}</span>
+                    </div>
+                    {idx < automation.actions.length - 1 && (
+                      <ArrowRight className="h-3 w-3 text-muted-foreground shrink-0" />
+                    )}
+                  </div>
+                );
+              })}
+          </div>
+
+          {/* Config details */}
+          <div className="space-y-3">
+            {triggerConfig && Object.keys(triggerConfig).length > 0 && (
+              <div className="space-y-1.5">
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                  Trigger Configuration
+                </p>
+                <div className="rounded-md border bg-muted/30 p-2.5 space-y-1">
+                  {Object.entries(triggerConfig).map(([key, val]) => (
+                    <div key={key} className="flex items-start gap-2 text-xs">
+                      <span className="font-medium text-muted-foreground min-w-[90px]">{formatConfigKey(key)}</span>
+                      <span className="text-foreground break-all">{String(val ?? "—")}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {automation.actions
+              .filter((a) => a.config && Object.keys(a.config).length > 0)
+              .map((action) => {
+                const actionLabel = NODE_LABELS[action.type] ?? action.type;
+                return (
+                  <div key={action.id} className="space-y-1.5">
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                      {actionLabel} Configuration
+                    </p>
+                    <div className="rounded-md border bg-muted/30 p-2.5 space-y-1">
+                      {Object.entries(action.config!).map(([key, val]) => (
+                        <div key={key} className="flex items-start gap-2 text-xs">
+                          <span className="font-medium text-muted-foreground min-w-[90px]">{formatConfigKey(key)}</span>
+                          <span className="text-foreground break-all">{String(val ?? "—")}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+          </div>
+
+          {/* Stats */}
+          <div className="flex items-center gap-4 text-xs text-muted-foreground pt-2 border-t">
+            <span className="flex items-center gap-1">
+              <Play className="h-3 w-3" />
+              {automation.runCount ?? 0} runs
+            </span>
+            {automation.lastRunAt && (
+              <span className="flex items-center gap-1">
+                <Clock className="h-3 w-3" />
+                {formatRelativeTime(automation.lastRunAt)}
+              </span>
+            )}
+            <span className="flex items-center gap-1">
+              <Clock className="h-3 w-3" />
+              {new Date(automation.createdAt).toLocaleDateString()}
+            </span>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" size="sm" onClick={onClose}>
+            Close
+          </Button>
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={onTest}>
+            <Play className="h-3.5 w-3.5" />
+            Test Run
+          </Button>
+          <Button size="sm" className="gap-1.5" onClick={onEdit}>
+            <Edit2 className="h-3.5 w-3.5" />
+            Edit Automation
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function formatConfigKey(key: string): string {
+  return key
+    .replace(/([A-Z])/g, " $1")
+    .replace(/^./, (s) => s.toUpperCase())
+    .trim();
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function formatRelativeTime(iso: string): string {
+  try {
+    const d = new Date(iso);
+    const now = new Date();
+    const diffMs = now.getTime() - d.getTime();
+    const diffMin = Math.floor(diffMs / 60000);
+    if (diffMin < 1) return "Just now";
+    if (diffMin < 60) return `${diffMin}m ago`;
+    const diffHr = Math.floor(diffMin / 60);
+    if (diffHr < 24) return `${diffHr}h ago`;
+    const diffDay = Math.floor(diffHr / 24);
+    if (diffDay < 7) return `${diffDay}d ago`;
+    return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  } catch {
+    return iso;
+  }
 }

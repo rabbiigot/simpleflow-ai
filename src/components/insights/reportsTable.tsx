@@ -1,5 +1,3 @@
-"use client";
-
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -16,51 +14,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import type { DashboardReport } from "@/lib/backend-api";
 
-const reports = [
-  {
-    id: 1,
-    name: "Weekly Performance Report",
-    date: "Feb 26, 2026",
-    status: "completed",
-    tasks: 127,
-    hours: 42.5,
-  },
-  {
-    id: 2,
-    name: "Monthly Productivity Summary",
-    date: "Feb 24, 2026",
-    status: "completed",
-    tasks: 312,
-    hours: 156.5,
-  },
-  {
-    id: 3,
-    name: "Team Collaboration Analysis",
-    date: "Feb 20, 2026",
-    status: "completed",
-    tasks: 89,
-    hours: 38.2,
-  },
-  {
-    id: 4,
-    name: "Q1 Quarterly Review",
-    date: "Feb 15, 2026",
-    status: "pending",
-    tasks: 245,
-    hours: 112.8,
-  },
-  {
-    id: 5,
-    name: "Time Tracking Audit",
-    date: "Feb 10, 2026",
-    status: "completed",
-    tasks: 156,
-    hours: 62.3,
-  },
-];
+type ReportsTableProps = {
+  reports: DashboardReport[];
+};
 
-export function ReportsTable() {
+export function ReportsTable({ reports }: ReportsTableProps) {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "completed":
@@ -97,7 +57,7 @@ export function ReportsTable() {
                 <TableRow key={report.id} className="hover:bg-muted/50">
                   <TableCell className="font-medium">{report.name}</TableCell>
                   <TableCell className="text-muted-foreground">
-                    {report.date}
+                    {new Date(report.date).toLocaleDateString()}
                   </TableCell>
                   <TableCell>{report.tasks}</TableCell>
                   <TableCell>{report.hours}h</TableCell>

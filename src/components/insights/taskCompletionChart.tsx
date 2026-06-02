@@ -1,5 +1,3 @@
-"use client";
-
 import {
   Card,
   CardContent,
@@ -17,14 +15,11 @@ import {
   YAxis,
 } from "recharts";
 
-const data = [
-  { category: "Completed", value: 127, fill: "var(--chart-1)" },
-  { category: "In Progress", value: 34, fill: "var(--chart-2)" },
-  { category: "Pending", value: 18, fill: "var(--chart-3)" },
-  { category: "Overdue", value: 5, fill: "var(--chart-4)" },
-];
+type TaskCompletionChartProps = {
+  data: Array<{ category: string; value: number }>;
+};
 
-export function TaskCompletionChart() {
+export function TaskCompletionChart({ data }: TaskCompletionChartProps) {
   return (
     <Card className="bg-card">
       <CardHeader>

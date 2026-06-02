@@ -41,7 +41,7 @@ export default function TaskCard({
       {...attributes}
       {...listeners}
       className={clsx(
-        "bg-white rounded-md border p-3 text-sm cursor-grab",
+        "bg-card rounded-md border p-3 text-sm cursor-grab",
         "hover:bg-gradient-to-r hover:from-blue-500/5 hover:to-purple-500/5",
         isDragging && "opacity-40",
         isOverlay && "shadow-xl scale-[1.02]",

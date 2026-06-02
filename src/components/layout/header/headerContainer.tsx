@@ -1,52 +1,45 @@
+import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
-import logoOnly from "/src/assets/logoOnly.png"
-import nameLogo from "/src/assets/namelogo.png"
+import logoOnly from "/src/assets/logoOnly.png";
+import nameLogo from "/src/assets/namelogo.png";
+import nameLogoWhite from "@/assets/namelogo-white.svg";
 
 const HeaderContainer: React.FC<{ sidebarState: "expanded" | "collapsed" }> = ({
   sidebarState,
 }) => {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const sidebarOpen = sidebarState === "expanded";
+  const [isDark, setIsDark] = useState(false);
 
   useEffect(() => {
-    if (sidebarState === "expanded") {
-      setSidebarOpen(sidebarState === "expanded");
-    } else {
-      setSidebarOpen(false);
-    }
-  }, [sidebarState]);
+    const root = document.documentElement;
+    setIsDark(root.classList.contains("dark"));
+    const observer = new MutationObserver(() => {
+      setIsDark(root.classList.contains("dark"));
+    });
+    observer.observe(root, { attributes: true, attributeFilter: ["class"] });
+    return () => observer.disconnect();
+  }, []);
+
   return (
-    <>
-      <header>
-        <div
-          className={`relative bg-white left-0 top-0 ${
-            sidebarOpen ? "w-65" : "w-19"
-          } h-[70px] p-1 z-40 border-b border-r drop-shadow flex items-center transition-all justify-between`}
-        >
+    <header>
+      <div className="relative left-0 top-0 z-40 flex h-[68px] items-center justify-between border-b border-r border-sidebar-border bg-card px-3">
+        <div className="flex items-center gap-2 overflow-hidden">
+          <img src={logoOnly} alt="Logo" className="h-11 w-auto shrink-0" />
           <div
-            className={`fixed flex flex-row -left-20 ${
-              sidebarOpen ? "ml-22" : "ml-22"
-            }`}
+            className={cn(
+              "overflow-hidden transition-all duration-300 ease-in-out",
+              sidebarOpen ? "max-w-[180px] opacity-100" : "max-w-0 opacity-0",
+            )}
           >
             <img
-              src={logoOnly}
-              alt="Logo"
-              className=" mt-1 h-13"
+              src={isDark ? nameLogoWhite : nameLogo}
+              alt="Simpleflow"
+              className="h-9 w-auto"
             />
-            {sidebarOpen ? (
-              <div className="">
-                <img
-                  src={nameLogo}
-                  alt="Logo"
-                  className="transition-all duration-200 ease-in-out mt-3 h-10"
-                />
-              </div>
-            ) : (
-              <></>
-            )}
           </div>
         </div>
-      </header>
-    </>
+      </div>
+    </header>
   );
 };
 

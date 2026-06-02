@@ -1,8 +1,9 @@
 import { Card } from "@/components/ui/card";
 import { navigationSidebarItems } from "@/constants/navigation/sidebar";
 import { cn } from "@/lib/utils";
+import { useAuthStore } from "@/store/auth-store";
 import { Link, useLocation } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import FooterContainer from "./footerContainer";
 import SidebarButton from "./sidebarButton";
 
@@ -16,7 +17,12 @@ const SidebarContainer = ({
   toggleSidebar,
 }: SidebarButtonProps) => {
   const { pathname } = useLocation();
+  const authUser = useAuthStore((s) => s.user);
+  const isAdmin = authUser?.role === "ADMIN";
   const [currentPathname, setCurrentPathname] = useState<string>(pathname);
+  const navItems = useMemo(() =>
+    navigationSidebarItems.filter((item) => item.name !== "Campaign" || isAdmin),
+  [isAdmin]);
   useEffect(() => {
     setCurrentPathname(pathname);
   }, [pathname]);
@@ -24,27 +30,30 @@ const SidebarContainer = ({
   return (
     <>
       <Card className="flex flex-col border-r z-30 border-t-0 rounded-none h-full grow px-3 pb-2">
-        {/* <CardHeader title="Sidebar" /> */}
         <nav className="flex flex-1 z-50 flex-col">
           <ul role="list" className="flex flex-1 flex-col gap-y-1 p-1">
-            {navigationSidebarItems.map((item, index) => {
+            {navItems.map((item, index) => {
               const isActive = currentPathname === item.href;
 
               return (
                 <li key={index}>
                   <Link
                     to={item.href}
+                    data-tour={`sidebar-${item.name.toLowerCase().replace(/\s+/g, "-")}`}
                     className={cn(
                       isActive
                         ? "bg-linear-to-r from-purple-500 via-indigo-500 to-blue-500 text-white"
-                        : "text-sidebar-foreground hover:bg-gray-200 hover:text-sidebar-accent-foreground",
-                      "group flex items-center gap-x-2 rounded-md p-2 text-sm font-medium transition-colors duration-200",
+                        : "text-sidebar-foreground hover:bg-accent hover:text-sidebar-accent-foreground",
+                      "group flex items-center gap-x-2 rounded-md px-1.5 py-2 text-sm font-medium transition-colors duration-200",
+                      sidebarState !== "expanded" && "w-10 justify-center px-0 pl-1.5",
                     )}
                   >
                     <item.icon
                       className={`shrink-0 ${
-                        isActive ? "text-white" : "text-indigo-700"
+                        isActive ? "text-white" : "text-indigo-700 dark:text-blue-400"
                       }`}
+                      size={20}
+                      strokeWidth={1.5}
                     />
 
                     <span
