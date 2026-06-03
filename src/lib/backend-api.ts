@@ -1149,9 +1149,13 @@ export async function uploadTaskAttachment(
   if (userId) formData.append("userId", userId);
 
   const url = resolveUrl(`/workspace/${workspaceId}/tasks/${taskId}/attachments`);
+  const token = typeof window !== "undefined"
+    ? localStorage.getItem("simpleflow_token") || ""
+    : "";
   const response = await fetch(url, {
     method: "POST",
     body: formData,
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
 
   const data = await response.json().catch(() => ({}));
@@ -1359,7 +1363,14 @@ export async function uploadProfileImage(
   formData.append("type", type);
 
   const url = resolveUrl(`/users/${encoded}/profile/upload`);
-  const response = await fetch(url, { method: "POST", body: formData });
+  const token = typeof window !== "undefined"
+    ? localStorage.getItem("simpleflow_token") || ""
+    : "";
+  const response = await fetch(url, {
+    method: "POST",
+    body: formData,
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(normalizeErrorMessage(data, response.status));
   return data as UserProfile;
