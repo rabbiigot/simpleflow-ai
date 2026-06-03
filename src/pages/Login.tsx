@@ -130,11 +130,11 @@ const Login = () => {
                 <img
                   src={googleIcon}
                   alt=""
-                  className="h-5 w-5"
+                  className="h-5 w-5 pointer-events-none"
                   aria-hidden="true"
                   loading="lazy"
                 />
-                <span className="text-sm font-medium">
+                <span className="text-sm font-medium pointer-events-none">
                   Continue with Google
                 </span>
               </button>
