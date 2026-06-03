@@ -39,7 +39,6 @@ import {
   CheckCircle,
   ChevronDown,
   ChevronRight,
-  Clock,
   Layers,
   Loader2,
   Plus,
@@ -74,7 +73,7 @@ type TaskForm = {
 function mapStatus(
   columnName: string,
   columnType?: string,
-): TaskView["status"] {
+): TaskView["statusCategory"] {
   const normalized = columnName.toLowerCase();
   if (
     columnType === "COMPLETED" ||

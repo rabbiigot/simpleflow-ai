@@ -17,8 +17,8 @@ import {
   listAiTools,
   type AiChatResponse,
   type DashboardOverviewResponse,
-  type ToolResult,
   type Workspace,
+  type WorkspaceStatusFilter,
 } from "@/lib/backend-api";
 import {
   useNotificationSocket,
@@ -104,8 +104,6 @@ function bubbleBase(role: "user" | "assistant") {
   );
 }
 
-function isRecord(v: unknown): v is Record<string, unknown> { return Boolean(v) && typeof v === "object" && !Array.isArray(v); }
-function asArray(v: unknown): unknown[] | null { return Array.isArray(v) ? v : null; }
 
 const FILE_ICON_MAP: Record<string, string> = {
   "application/pdf": "PDF", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "XLSX",
@@ -339,9 +337,9 @@ const FlowmoChat = () => {
   // Voice
   const voiceSupported = typeof window !== "undefined" && ("SpeechRecognition" in window || "webkitSpeechRecognition" in window);
   const [isRecording, setIsRecording] = useState(false);
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const recognitionRef = useRef<any>(null);
   const finalTranscriptRef = useRef("");
-  const sendMessageRef = useRef<(raw: string, files?: File[]) => Promise<void>>();
+  const sendMessageRef = useRef<(raw: string, files?: File[]) => Promise<void>>(undefined);
 
   // ── Page Tour ──
   const [tourActive, setTourActive] = useState(false);
@@ -371,7 +369,7 @@ const FlowmoChat = () => {
       if (event.type === "new_notification" && event.notification) {
         const notif = event.notification;
         // Push calendar events into chat — skip duplicates
-        if (notif.type === "CALENDAR_EVENT") {
+        if ((notif.type as string) === "CALENDAR_EVENT") {
           const calId = `calendar-${notif.id}`;
           setMessages((prev) => {
             if (prev.some((m) => m.id === calId)) return prev;
@@ -395,7 +393,7 @@ const FlowmoChat = () => {
           });
         }
 
-        if (notif.type === "GITHUB_EVENT" && notif.title?.includes("PR #")) {
+        if ((notif.type as string) === "GITHUB_EVENT" && notif.title?.includes("PR #")) {
           const prMatch = notif.title.match(/^PR #(\d+) (\w+): (.+)$/);
           const prNumber = prMatch ? Number(prMatch[1]) : null;
           const action = prMatch ? prMatch[2] : null;
@@ -437,7 +435,7 @@ const FlowmoChat = () => {
 
   useEffect(() => {
     const uid = getCurrentUserId() || undefined;
-    getWorkspacesPaged({ userId: uid, pageSize: 100, excludeStatus: ["archived"] })
+    getWorkspacesPaged({ userId: uid, pageSize: 100, excludeStatus: ["archived" as WorkspaceStatusFilter] })
       .then((res) => setWorkspaces(res.items)).catch(() => {});
   }, []);
 
@@ -502,7 +500,7 @@ const FlowmoChat = () => {
   const copyMessage = useCallback((id: string, text: string) => { navigator.clipboard.writeText(text).then(() => { setCopiedId(id); setTimeout(() => setCopiedId(null), 2000); }); }, []);
 
   // ── Voice ──
-  function getSpeechCtor(): (new () => SpeechRecognition) | null {
+  function getSpeechCtor(): (new () => any) | null {
     if (typeof window === "undefined") return null;
     return (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition || null;
   }
@@ -519,7 +517,7 @@ const FlowmoChat = () => {
     let silenceTimer: ReturnType<typeof setTimeout> | null = null;
     const resetTimer = () => { if (silenceTimer) clearTimeout(silenceTimer); silenceTimer = setTimeout(() => recognition.stop(), 2000); };
 
-    recognition.onresult = (event: SpeechRecognitionEvent) => {
+    recognition.onresult = (event: any) => {
       let final_ = "", interim = "";
       for (let i = 0; i < event.results.length; i++) {
         const t = event.results[i][0].transcript.trim();
@@ -604,7 +602,7 @@ const FlowmoChat = () => {
           emitInvalidation(Array.from(tags), toolsRun);
           if (tags.has("workspaces")) {
             const uid = getCurrentUserId() || undefined;
-            getWorkspacesPaged({ userId: uid, pageSize: 100, excludeStatus: ["archived"] }).then((res) => setWorkspaces(res.items)).catch(() => {});
+            getWorkspacesPaged({ userId: uid, pageSize: 100, excludeStatus: ["archived" as WorkspaceStatusFilter] }).then((res) => setWorkspaces(res.items)).catch(() => {});
           }
         }
 
@@ -700,8 +698,8 @@ const FlowmoChat = () => {
 
   const thinkingLabel = useMemo(() => {
     if (!isSending) return "";
-    const last = events.at(-1);
-    if (last?.type === "tool_start") return `Running ${last.tool}`;
+    const last = events.length > 0 ? events[events.length - 1] : undefined;
+    if (last?.type === "tool_start") return `Running ${(last as any).tool ?? ""}`;
     if (last?.type === "planning") return "Planning";
     return "Thinking";
   }, [events, isSending]);

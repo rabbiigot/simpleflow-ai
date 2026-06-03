@@ -47,13 +47,12 @@ import {
   removeWorkspaceMember,
   setNotificationPreference,
   updateWorkspace,
-  type NotificationPreference,
   type WorkspaceMember,
   type WorkspaceUser,
 } from "@/lib/backend-api";
 import { useAiPanelState } from "@/components/layout/rootLayout";
 import { emitInvalidation } from "@/lib/invalidation";
-import { Link, useParams } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import {
   Calendar,
   CalendarCheck,
@@ -65,7 +64,6 @@ import {
   BellOff,
   Edit,
   Filter,
-  ListTodo,
   Loader2,
   MessageSquare,
   Plus,
@@ -121,8 +119,6 @@ const WorkspaceContainer = () => {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const params = useParams({ strict: false });
-  const projectId = params.projectId as string | undefined;
   const [newGoal, setNewGoal] = useState({
     title: "",
     description: "",
@@ -491,7 +487,7 @@ const WorkspaceContainer = () => {
       setIsInviteOpen(false);
       if (result.autoAdded) {
         toast.success("User added to workspace");
-      } else if (result.emailSent === false) {
+      } else if ((result as any).emailSent === false) {
         toast.warning("Invite created but email could not be sent");
       } else {
         toast.success("Invite email sent successfully");
@@ -558,7 +554,7 @@ const WorkspaceContainer = () => {
     });
   }, [goals, appliedFilters, searchQuery]);
 
-  const getCategoryColor = () => {
+  const getCategoryColor = (_category?: string) => {
     return "border-blue-300 bg-blue-100 text-blue-800";
   };
 

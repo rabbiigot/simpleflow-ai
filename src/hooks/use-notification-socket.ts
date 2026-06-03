@@ -21,7 +21,7 @@ export function useNotificationSocket(userId: string | null) {
   const listenersRef = useRef<
     Set<(event: NotificationSocketEvent) => void>
   >(new Set());
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout>(undefined);
   const reconnectAttemptsRef = useRef(0);
   const MAX_RECONNECT = 5;
 

@@ -11,7 +11,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import {
   Table,
@@ -32,7 +31,7 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 
-import { isLightColor, toPastelBackground } from "../utils/color";
+import { toPastelBackground } from "../utils/color";
 import { parseTaskMeta, percentDone } from "../utils/task-meta";
 
 type Column = NonNullable<Workspace["columns"]>[number];
@@ -92,7 +91,7 @@ export function ListView({
   columns,
   effectiveColumnColors,
   onViewTask,
-  onEditTask,
+  onEditTask: _onEditTask,
   onDeleteTask,
   onCreateTask,
   onMoveTask,

@@ -7,7 +7,7 @@ import {
 import type { Workspace } from "@/lib/backend-api";
 import { useDroppable } from "@dnd-kit/core";
 import { Plus, Trash2 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { PRESET_COLUMN_COLORS, isLightColor, tintHex } from "../utils/color";
 
 export function WorkspaceColumn({

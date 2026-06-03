@@ -236,7 +236,7 @@ export type PagedResult<T> = {
   totalPages: number;
 };
 
-export type WorkspaceStatusFilter = "all" | "active" | "completed" | "paused";
+export type WorkspaceStatusFilter = "all" | "active" | "completed" | "paused" | "archived";
 
 export type WorkspacesQuery = {
   status?: WorkspaceStatusFilter;
@@ -1979,7 +1979,9 @@ export type NotificationType =
   | "INVITE_ACCEPTED"
   | "AUTOMATION_EXECUTED"
   | "POST_CREATED"
-  | "COMMENT_ADDED";
+  | "COMMENT_ADDED"
+  | "GITHUB_EVENT"
+  | "CALENDAR_EVENT";
 
 export type NotificationData = {
   id: number;

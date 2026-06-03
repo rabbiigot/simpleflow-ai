@@ -314,31 +314,6 @@ export default function EmailTemplateBuilder({
     );
   }, []);
 
-  const _duplicateBlock = useCallback((blockId: string) => {
-    setSections((prev) =>
-      prev.map((s) => ({
-        ...s,
-        rows: s.rows.map((r) => {
-          const idx = r.blocks.findIndex((b) => b.id === blockId);
-          if (idx === -1) return r;
-          const original = r.blocks[idx];
-          const clone = {
-            ...original,
-            id: `${original.type}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-            content: { ...original.content },
-            styles: { ...original.styles },
-          };
-          if (r.blocks.length < r.columns) {
-            const newBlocks = [...r.blocks];
-            newBlocks.splice(idx + 1, 0, clone);
-            return { ...r, blocks: newBlocks };
-          }
-          return r;
-        }),
-      }))
-    );
-  }, []);
-
   const handleCodeTabActive = useCallback(() => {
     setCodeValue(fullHtml);
   }, [fullHtml]);

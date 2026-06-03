@@ -23,7 +23,7 @@ export function useAiEvents() {
   const [isConnected, setIsConnected] = useState(false);
 
   const wsUrl = useMemo(() => buildWsUrl(), []);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout>(undefined);
   const reconnectAttemptsRef = useRef(0);
   const MAX_RECONNECT = 5;
 

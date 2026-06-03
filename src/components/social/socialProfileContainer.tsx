@@ -167,7 +167,7 @@ export default function SocialProfileContainer({ profileUserId, initialTab }: Pr
     if (!post) return;
 
     if (post.userReaction === type) {
-      await removeSocialReaction(postId, currentUserId).catch(() => { });
+      await removeSocialReaction({ postId, userId: currentUserId }).catch(() => { });
       setPosts((prev) =>
         prev.map((p) =>
           p.id === postId
@@ -176,7 +176,7 @@ export default function SocialProfileContainer({ profileUserId, initialTab }: Pr
         ),
       );
     } else {
-      await addSocialReaction(postId, currentUserId, type).catch(() => { });
+      await addSocialReaction({ postId, userId: currentUserId, type }).catch(() => { });
       setPosts((prev) =>
         prev.map((p) => {
           if (p.id !== postId) return p;
@@ -192,7 +192,7 @@ export default function SocialProfileContainer({ profileUserId, initialTab }: Pr
   const handleComment = async (postId: string, content: string, parentId?: string) => {
     if (!currentUserId) return;
     try {
-      const comment = await createSocialComment(postId, currentUserId, content, parentId);
+      const comment = await createSocialComment({ postId, userId: currentUserId, content, parentId });
       setPosts((prev) =>
         prev.map((p) => {
           if (p.id !== postId) return p;

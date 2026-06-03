@@ -254,7 +254,7 @@ export default function GroupChat({
       const result = await inviteToChatChannel(channelId, email, currentUserId);
       if (result.autoAdded) {
         toast.success(`${email} has been added to the channel`);
-      } else if (result.emailSent === false) {
+      } else if ((result as any).emailSent === false) {
         toast.warning(`Invite created but email could not be sent to ${email}`);
       } else {
         toast.success(`Invite sent to ${email}`);

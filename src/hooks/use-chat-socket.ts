@@ -38,7 +38,7 @@ export function useChatSocket(userId: string | null) {
   const socketRef = useRef<WebSocket | null>(null);
   const listenersRef = useRef<Set<(msg: ChatSocketMessage) => void>>(new Set());
   const pendingRef = useRef<string[]>([]);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout>(undefined);
   const reconnectAttemptsRef = useRef(0);
   const MAX_RECONNECT = 5;
 

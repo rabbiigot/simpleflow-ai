@@ -34,7 +34,6 @@ import {
   createTaskComment,
   deleteTaskAttachment,
   deleteTaskComment,
-  getCurrentUserId,
   getTaskAttachments,
   getTaskComments,
   uploadTaskAttachment,
@@ -431,18 +430,6 @@ function TaskChatSection({
     } catch {
       // silently fail
     }
-  };
-
-  const handleApplyChecklist = (comment: any) => {
-    const items = comment._pendingChecklist;
-    if (!items || !onChecklistSuggestion) return;
-    onChecklistSuggestion(items);
-    // Remove the pending flag so the button disappears
-    setComments((prev) =>
-      prev.map((c) =>
-        c.id === comment.id ? { ...c, _pendingChecklist: undefined } as any : c,
-      ),
-    );
   };
 
   return (

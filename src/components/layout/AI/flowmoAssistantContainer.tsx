@@ -2,7 +2,7 @@ import loadingGif from "@/assets/loading.gif";
 import logoOnly from "@/assets/logoOnly.png";
 import CalendarEventCard from "./CalendarEventCard";
 import GitHubEventCard from "./GitHubEventCard";
-import { PlanStepsView, ToolResultCards } from "./ToolResultCards";
+import { ToolResultCards } from "./ToolResultCards";
 import TourGuide from "./TourGuide";
 import { ImageWithLoader } from "@/components/ui/image-loader";
 import { Button } from "@/components/ui/button";
@@ -36,7 +36,6 @@ import { cn } from "@/lib/utils";
 import { useNavigate } from "@tanstack/react-router";
 import { useAuthStore } from "@/store/auth-store";
 import { useFlowmoStore } from "@/store/flowmo-store";
-import type { SessionHistoryEntry } from "@/store/flowmo-store";
 import {
   ArrowLeft,
   BarChart3,
@@ -55,7 +54,7 @@ import {
   Globe,
   ImagePlus,
   Layers,
-  Mail,
+  Loader2,
   Maximize2,
   Menu,
   MessageSquare,
@@ -65,7 +64,6 @@ import {
   MoreVertical,
   PenSquare,
   Pin,
-  RotateCcw,
   Send,
   Settings,
   Smile,
@@ -92,25 +90,6 @@ type FlowmoAssistantContainerProps = {
 };
 
 import type { ChatMessage } from "@/store/flowmo-store";
-
-const EMOJIS = [
-  "😀",
-  "😂",
-  "😍",
-  "🤖",
-  "✨",
-  "🔥",
-  "✅",
-  "❌",
-  "👍",
-  "🙏",
-  "🎉",
-  "💡",
-  "🧠",
-  "📌",
-  "🗓️",
-  "🧩",
-] as const;
 
 type SubCommand = {
   label: string;
@@ -507,7 +486,8 @@ function PlanStepsView({ actions, results }: {
   );
 }
 
-function renderReadableToolResults(results: AiChatResponse["results"]) {
+// @ts-ignore — kept for future use
+function _renderReadableToolResults(results: AiChatResponse["results"]) {
   const ok = (results ?? []).filter((r) => r?.success && r.data != null);
   if (!ok.length) return null;
 
@@ -637,10 +617,10 @@ function renderReadableToolResults(results: AiChatResponse["results"]) {
         title: "Your Profile",
         body: (
           <div className="mt-1 rounded border bg-muted p-2 space-y-1 text-xs">
-            {data.firstName && <div><span className="text-muted-foreground">Name:</span> <span className="font-medium">{String(data.firstName)} {String(data.lastName || "")}</span></div>}
-            {data.email && <div><span className="text-muted-foreground">Email:</span> <span className="font-medium">{String(data.email)}</span></div>}
-            {data.role && <div><span className="text-muted-foreground">Role:</span> <span className="font-medium">{String(data.role)}</span></div>}
-            {data.bio && <div><span className="text-muted-foreground">Bio:</span> <span className="font-medium">{String(data.bio)}</span></div>}
+            {!!data.firstName && <div><span className="text-muted-foreground">Name:</span> <span className="font-medium">{String(data.firstName)} {String(data.lastName || "")}</span></div>}
+            {!!data.email && <div><span className="text-muted-foreground">Email:</span> <span className="font-medium">{String(data.email)}</span></div>}
+            {!!data.role && <div><span className="text-muted-foreground">Role:</span> <span className="font-medium">{String(data.role)}</span></div>}
+            {!!data.bio && <div><span className="text-muted-foreground">Bio:</span> <span className="font-medium">{String(data.bio)}</span></div>}
           </div>
         ),
       });
@@ -655,10 +635,10 @@ function renderReadableToolResults(results: AiChatResponse["results"]) {
               <span className="font-medium">{String(data.title ?? "")}</span>
               <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">{String(data.status ?? "")}</span>
             </div>
-            {data.description && <p className="text-muted-foreground">{String(data.description)}</p>}
+            {!!data.description && <p className="text-muted-foreground">{String(data.description)}</p>}
             <div className="text-[10px] text-muted-foreground space-y-0.5">
-              {data.assignee && isRecord(data.assignee) && <div>Assignee: {String(data.assignee.name ?? "")}</div>}
-              {data.workspaceName && <div>Workspace: {String(data.workspaceName)}</div>}
+              {!!data.assignee && isRecord(data.assignee) && <div>Assignee: {String(data.assignee.name ?? "")}</div>}
+              {!!data.workspaceName && <div>Workspace: {String(data.workspaceName)}</div>}
             </div>
           </div>
         ),
@@ -815,7 +795,7 @@ const FlowmoAssistantContainer: React.FC<FlowmoAssistantContainerProps> = ({
 
   const [inputText, setInputText] = useState("");
   const [isSending, setIsSending] = useState(false);
-  const [tools, setTools] = useState<ToolDefinition[]>([]);
+  const [, setTools] = useState<ToolDefinition[]>([]);
   const [showEmoji, setShowEmoji] = useState(false);
   const [showSlashMenu, setShowSlashMenu] = useState(false);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
@@ -832,20 +812,20 @@ const FlowmoAssistantContainer: React.FC<FlowmoAssistantContainerProps> = ({
   const [isRecording, setIsRecording] = useState(false);
   const [wakeWordEnabled, setWakeWordEnabled] = useState(false);
   const [wakeWordListening, setWakeWordListening] = useState(false);
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
-  const wakeRecognitionRef = useRef<SpeechRecognition | null>(null);
+  const recognitionRef = useRef<any>(null);
+  const wakeRecognitionRef = useRef<any>(null);
   const finalTranscriptRef = useRef("");
-  const sendMessageRef = useRef<(raw: string, imageFile?: File | null) => Promise<void>>();
+  const sendMessageRef = useRef<(raw: string, imageFile?: File | null) => Promise<void>>(undefined);
   const voiceSupported = typeof window !== "undefined" && ("SpeechRecognition" in window || "webkitSpeechRecognition" in window);
 
   // Use refs for cross-referencing between voice functions to avoid circular deps
   const wakeWordEnabledRef = useRef(wakeWordEnabled);
   wakeWordEnabledRef.current = wakeWordEnabled;
 
-  const startWakeWordListenerRef = useRef<() => void>();
-  const startCommandRecordingRef = useRef<() => void>();
+  const startWakeWordListenerRef = useRef<() => void>(undefined);
+  const startCommandRecordingRef = useRef<() => void>(undefined);
 
-  function getSpeechCtor(): (new () => SpeechRecognition) | null {
+  function getSpeechCtor(): (new () => any) | null {
     if (typeof window === "undefined") return null;
     return (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition || null;
   }
@@ -1037,7 +1017,7 @@ const FlowmoAssistantContainer: React.FC<FlowmoAssistantContainerProps> = ({
       }, SILENCE_DELAY);
     };
 
-    recognition.onresult = (event: SpeechRecognitionEvent) => {
+    recognition.onresult = (event: any) => {
       const finalParts: string[] = [];
       let interim = "";
       for (let i = 0; i < event.results.length; i++) {
@@ -1120,7 +1100,7 @@ const FlowmoAssistantContainer: React.FC<FlowmoAssistantContainerProps> = ({
     recognition.interimResults = true;
     recognition.lang = "en-US";
 
-    recognition.onresult = (event: SpeechRecognitionEvent) => {
+    recognition.onresult = (event: any) => {
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const transcript = event.results[i][0].transcript.toLowerCase().replace(/[^a-z ]/g, "").trim();
         // Match wake words and common misrecognitions
@@ -1171,7 +1151,7 @@ const FlowmoAssistantContainer: React.FC<FlowmoAssistantContainerProps> = ({
       }
     };
 
-    recognition.onerror = (e: SpeechRecognitionErrorEvent) => {
+    recognition.onerror = (e: any) => {
       wakeRecognitionRef.current = null;
       if (e.error === "not-allowed" || e.error === "service-not-allowed") {
         setWakeWordListening(false);
@@ -1242,7 +1222,6 @@ const FlowmoAssistantContainer: React.FC<FlowmoAssistantContainerProps> = ({
   const saveConfirmationId = useFlowmoStore((s) => s.saveConfirmationId);
   const sessionId = useFlowmoStore((s) => s.sessionId);
   const saveSessionId = useFlowmoStore((s) => s.saveSessionId);
-  const clearSession = useFlowmoStore((s) => s.clearSession);
   const startNewSession = useFlowmoStore((s) => s.startNewSession);
   const loadSession = useFlowmoStore((s) => s.loadSession);
   const deleteSessionHistory = useFlowmoStore((s) => s.deleteSessionHistory);
@@ -1464,14 +1443,6 @@ const FlowmoAssistantContainer: React.FC<FlowmoAssistantContainerProps> = ({
     if (skipChatScrollRef.current) { skipChatScrollRef.current = false; return; }
     bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages.length, aiState]);
-
-  const toolsPreview = useMemo(() => {
-    return tools
-      .slice(0, 10)
-      .map((tool) => tool.name)
-      .join(", ");
-  }, [tools]);
-
 
   const sendMessage = async (raw: string, imageFile?: File | null) => {
     const text = raw.trim();
@@ -2187,7 +2158,7 @@ const FlowmoAssistantContainer: React.FC<FlowmoAssistantContainerProps> = ({
                       }}
                       className="h-9 w-full rounded-md border border-border bg-card px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-200"
                     >
-                      {Intl.supportedValuesOf("timeZone").map((tz) => (
+                      {(Intl as any).supportedValuesOf("timeZone").map((tz: string) => (
                         <option key={tz} value={tz}>
                           {tz}
                         </option>

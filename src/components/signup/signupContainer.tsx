@@ -5,7 +5,7 @@ import { resendVerification, signUp } from "@/lib/backend-api";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/auth-store";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { ChevronDown, Eye, EyeOff, Loader2, Mail, Search } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -40,8 +40,6 @@ const inputError =
   "h-10 bg-white py-2 text-[16px] sm:text-sm border-red-500 shadow-sm shadow-red-200/60 focus-visible:border-red-500 focus-visible:ring-red-300/50";
 
 const SignupContainer = () => {
-  const navigate = useNavigate();
-  const setAuth = useAuthStore((store) => store.setAuth);
   const clearAuth = useAuthStore((store) => store.clearAuth);
 
   const emailFromUrl = typeof window !== "undefined"

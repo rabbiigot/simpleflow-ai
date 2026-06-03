@@ -15,7 +15,7 @@ import { ClipboardList, Globe, Lock, MessageCircle, MessageSquare, MoreHorizonta
 import { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { ReactionPickerHover } from "./ReactionPicker";
-import { reactionIcon, reactionLabel, topReactionEmojis, type UiComment, type UiPost } from "./types";
+import { reactionIcon, topReactionEmojis, type UiComment, type UiPost } from "./types";
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */

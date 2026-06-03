@@ -492,7 +492,7 @@ type Props = {
   isPanelVisible?: boolean;
 };
 
-export default function TourGuide({ onClose: _onClose, onSwitchToChat, isPanelVisible = true }: Props) {
+export default function TourGuide({ onClose: _onClose, onSwitchToChat: _onSwitchToChat, isPanelVisible: _isPanelVisible = true }: Props) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
   const authUser = useAuthStore((s) => s.user);

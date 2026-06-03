@@ -47,7 +47,6 @@ import {
   updateWorkspaceTask,
   type ChatChannel,
   type Workspace,
-  type WorkspaceMember,
   type WorkspaceUser,
 } from "@/lib/backend-api";
 import { emitInvalidation } from "@/lib/invalidation";
@@ -410,7 +409,7 @@ export default function WorkspaceProjects() {
       setIsInviteOpen(false);
       if (result.autoAdded) {
         toast.success("User added to workspace");
-      } else if (result.emailSent === false) {
+      } else if ((result as any).emailSent === false) {
         toast.warning("Invite created but email could not be sent");
       } else {
         toast.success("Invite email sent successfully");
@@ -432,7 +431,7 @@ export default function WorkspaceProjects() {
     }
   };
 
-  const handleOpenShare = async (taskId: string, title: string) => {
+  const handleOpenShare = async (_taskId: string, title: string) => {
     setShareTaskTitle(title);
     setShareMessage("");
     setShareChannelIds([]);
@@ -507,13 +506,6 @@ export default function WorkspaceProjects() {
     });
     return mapped;
   }, [columns, columnColors]);
-
-  const totalTasks = useMemo(() => {
-    return columns.reduce(
-      (total, column) => total + (column.tasks?.length ?? 0),
-      0,
-    );
-  }, [columns]);
 
   const visibleColumns = useMemo(() => {
     const f = appliedFilters;
@@ -790,29 +782,6 @@ export default function WorkspaceProjects() {
 
       return { ...prev, columns: nextColumns };
     });
-  };
-
-  const handleMoveTask = async (taskId: string, destinationColumnId: string) => {
-    if (!workspaceId || !workspace) return;
-
-    const destinationColumn = columns.find(
-      (column) => String(column.id) === destinationColumnId,
-    );
-    if (!destinationColumn) return;
-
-    updateWorkspaceTaskLocalMove(taskId, destinationColumnId);
-
-    try {
-      await moveWorkspaceTask(workspaceId, taskId, {
-        status: destinationColumn.name,
-      });
-      await loadWorkspace(true);
-    } catch (error) {
-      setErrorMessage(
-        error instanceof Error ? error.message : "Failed to move task",
-      );
-      await loadWorkspace(true);
-    }
   };
 
   const handleDragEnd = async (event: DragEndEvent) => {
@@ -1767,7 +1736,12 @@ export default function WorkspaceProjects() {
             calendarEnabled={workspace.calendarEnabled}
             currentUserId={currentUserId || ""}
             members={members}
-            onViewTask={openEditor}
+            onViewTask={(taskId: string) => {
+              for (const col of columns) {
+                const task = (col.tasks ?? []).find((t) => String(t.id) === taskId);
+                if (task) { openEditor(task, String(col.id)); return; }
+              }
+            }}
             onRefresh={() => void loadWorkspace(true)}
           />
         </div>

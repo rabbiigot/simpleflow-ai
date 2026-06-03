@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { BlockData, BlockContent, BlockStyles, SocialLink } from "./types";
+import type { BlockData, BlockContent, BlockStyles, BlockType, SocialLink } from "./types";
 import { SOCIAL_PLATFORMS } from "./types";
 
 interface CanvasBlockProps {

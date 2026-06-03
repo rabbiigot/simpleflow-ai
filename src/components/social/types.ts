@@ -243,7 +243,7 @@ export function mapPost(post: SocialPost, currentUserId: string): UiPost {
   const shares = ((post as any).shares ?? []) as Array<{ sharedById: number | string }>;
 
   return {
-    id: post.id,
+    id: String(post.id),
     authorId: String(post.userId || post.user?.id || ""),
     author: displayName(post),
     avatar: "/placeholder.svg",

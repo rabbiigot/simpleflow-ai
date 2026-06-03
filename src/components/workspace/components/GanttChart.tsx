@@ -93,33 +93,8 @@ export function GanttChart({ columns, effectiveColumnColors, onViewTask }: Gantt
     return arr;
   }, [rangeStart.getTime(), totalDays]);
 
-  // Group days by week
-  const weeks = useMemo(() => {
-    const result: Array<{ label: string; days: Date[] }> = [];
-    let currentWeek: Date[] = [];
-    let currentLabel = "";
-
-    for (const day of days) {
-      const weekLabel = `${formatMonthDay(day)}`;
-      const monday = new Date(day);
-      monday.setDate(day.getDate() - ((day.getDay() + 6) % 7));
-      const label = formatMonthDay(monday);
-
-      if (label !== currentLabel) {
-        if (currentWeek.length > 0) {
-          result.push({ label: currentLabel, days: currentWeek });
-        }
-        currentLabel = label;
-        currentWeek = [day];
-      } else {
-        currentWeek.push(day);
-      }
-    }
-    if (currentWeek.length > 0) {
-      result.push({ label: currentLabel, days: currentWeek });
-    }
-    return result;
-  }, [days]);
+  // Group days by week (kept for future use)
+  // const weeks = useMemo(() => { ... }, [days]);
 
   const visibleTasks = ganttTasks.filter(
     (t) => t.endDate >= rangeStart && t.startDate <= rangeEnd,

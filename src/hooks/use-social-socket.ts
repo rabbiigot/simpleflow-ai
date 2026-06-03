@@ -22,7 +22,7 @@ export function useSocialSocket(userId: string | null) {
   const [isConnected, setIsConnected] = useState(false);
   const socketRef = useRef<WebSocket | null>(null);
   const listenersRef = useRef<Set<(event: SocialSocketEvent) => void>>(new Set());
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout>(undefined);
   const reconnectAttemptsRef = useRef(0);
   const MAX_RECONNECT = 5;
 

@@ -274,12 +274,12 @@ export function ToolResultCards({ results, navigate }: { results: ToolResult[]; 
           <div className="rounded-lg border border-border p-2 space-y-1.5">
             <h4 className="text-[11px] font-semibold text-foreground">Your Profile</h4>
             <div className="grid grid-cols-2 gap-2 text-[11px]">
-              {data.firstName && <div><span className="text-muted-foreground">First Name:</span> <span className="font-medium">{String(data.firstName)}</span></div>}
-              {data.lastName && <div><span className="text-muted-foreground">Last Name:</span> <span className="font-medium">{String(data.lastName)}</span></div>}
-              {data.email && <div><span className="text-muted-foreground">Email:</span> <span className="font-medium">{String(data.email)}</span></div>}
-              {data.role && <div><span className="text-muted-foreground">Role:</span> <span className="font-medium">{String(data.role)}</span></div>}
-              {data.country && <div><span className="text-muted-foreground">Country:</span> <span className="font-medium">{String(data.country)}</span></div>}
-              {data.bio && <div className="col-span-2"><span className="text-muted-foreground">Bio:</span> <span className="font-medium">{String(data.bio)}</span></div>}
+              {data.firstName ? <div><span className="text-muted-foreground">First Name:</span> <span className="font-medium">{String(data.firstName)}</span></div> : null}
+              {data.lastName ? <div><span className="text-muted-foreground">Last Name:</span> <span className="font-medium">{String(data.lastName)}</span></div> : null}
+              {data.email ? <div><span className="text-muted-foreground">Email:</span> <span className="font-medium">{String(data.email)}</span></div> : null}
+              {data.role ? <div><span className="text-muted-foreground">Role:</span> <span className="font-medium">{String(data.role)}</span></div> : null}
+              {data.country ? <div><span className="text-muted-foreground">Country:</span> <span className="font-medium">{String(data.country)}</span></div> : null}
+              {data.bio ? <div className="col-span-2"><span className="text-muted-foreground">Bio:</span> <span className="font-medium">{String(data.bio)}</span></div> : null}
             </div>
           </div>
         </div>,
@@ -305,12 +305,12 @@ export function ToolResultCards({ results, navigate }: { results: ToolResult[]; 
               <h4 className="text-[11px] font-semibold text-foreground truncate">{String(data.title ?? "Untitled")}</h4>
               <StatusBadge status={String(data.status ?? "Unknown")} />
             </div>
-            {data.description && <p className="text-[11px] text-muted-foreground">{String(data.description)}</p>}
+            {data.description ? <p className="text-[11px] text-muted-foreground">{String(data.description)}</p> : null}
             <div className="grid grid-cols-2 gap-2 text-[11px]">
               <div><span className="text-muted-foreground">Workspace:</span> <span className="font-medium">{String(data.workspaceName ?? "")}</span></div>
-              {data.assignee && isRecord(data.assignee) && <div><span className="text-muted-foreground">Assignee:</span> <span className="font-medium">{String(data.assignee.name ?? "")}</span></div>}
-              {data.createdAt && <div><span className="text-muted-foreground">Created:</span> <span className="font-medium">{new Date(String(data.createdAt)).toLocaleDateString()}</span></div>}
-              {data.updatedAt && <div><span className="text-muted-foreground">Updated:</span> <span className="font-medium">{new Date(String(data.updatedAt)).toLocaleDateString()}</span></div>}
+              {data.assignee && isRecord(data.assignee) ? <div><span className="text-muted-foreground">Assignee:</span> <span className="font-medium">{String(data.assignee.name ?? "")}</span></div> : null}
+              {data.createdAt ? <div><span className="text-muted-foreground">Created:</span> <span className="font-medium">{new Date(String(data.createdAt)).toLocaleDateString()}</span></div> : null}
+              {data.updatedAt ? <div><span className="text-muted-foreground">Updated:</span> <span className="font-medium">{new Date(String(data.updatedAt)).toLocaleDateString()}</span></div> : null}
             </div>
           </div>
         </div>,

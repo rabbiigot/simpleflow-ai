@@ -3,7 +3,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import type { Workspace, WorkspaceMember } from "@/lib/backend-api";
 import type { ColumnColorMap } from "../types/workspace.types";
-import { parseTaskMeta, percentDone } from "../utils/task-meta";
+import { parseTaskMeta } from "../utils/task-meta";
 import {
   CheckCircle2,
   Circle,
@@ -25,11 +25,11 @@ type Props = {
 };
 
 export function DashboardView({
-  workspace,
+  workspace: _workspace,
   columns,
   members,
   effectiveColumnColors,
-  currentUserId,
+  currentUserId: _currentUserId,
 }: Props) {
   const stats = useMemo(() => {
     let total = 0;

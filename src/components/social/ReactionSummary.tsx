@@ -6,7 +6,6 @@ import type {
 import { ReactionPickerHover } from "./ReactionPicker";
 import {
   reactionIcon,
-  reactionLabel,
   topReactionEmojis,
 } from "./types";
 
