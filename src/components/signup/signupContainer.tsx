@@ -4,6 +4,7 @@ import { COUNTRIES, type Country } from "@/constants/countries";
 import { resendVerification, signUp } from "@/lib/backend-api";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/auth-store";
+import sfLogo from "@/assets/chatgptlogosf.png";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link } from "@tanstack/react-router";
 import { ChevronDown, Eye, EyeOff, Loader2, Mail, Search } from "lucide-react";
@@ -187,7 +188,7 @@ const SignupContainer = () => {
           <div className="relative mb-6 mt-10 flex flex-col items-center justify-center">
             <div className="absolute -top-35">
               <img
-                src="/src/assets/chatgptlogosf.png"
+                src={sfLogo}
                 alt="Simpleflow"
                 className="h-60 w-auto"
                 loading="lazy"

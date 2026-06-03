@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
-import logoOnly from "/src/assets/logoOnly.png";
-import nameLogo from "/src/assets/namelogo.png";
+import logoOnly from "@/assets/logoOnly.png";
+import nameLogo from "@/assets/namelogo.png";
 import nameLogoWhite from "@/assets/namelogo-white.svg";
 
 const HeaderContainer: React.FC<{ sidebarState: "expanded" | "collapsed" }> = ({

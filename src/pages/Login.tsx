@@ -10,8 +10,9 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import loginBg from "/src/assets/login-bg.png";
+import loginBg from "@/assets/login-bg.png";
 import googleIcon from "@/assets/google.png";
+import sfLogo from "@/assets/chatgptlogosf.png";
 
 const loginSchema = z.object({
   email: z
@@ -100,7 +101,7 @@ const Login = () => {
             <div className="relative mb-6 flex flex-col items-center justify-center">
               <div className="absolute -top-40">
                 <img
-                  src="/src/assets/chatgptlogosf.png"
+                  src={sfLogo}
                   alt="Simpleflow"
                   className="h-60 w-auto"
                   loading="lazy"

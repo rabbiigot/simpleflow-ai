@@ -9,6 +9,8 @@ RUN npm ci
 
 # Copy source and build
 COPY . .
+ARG VITE_API_BASE_URL=https://simpleflow-api.syncstack.tech
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 RUN npm run build
 
 # ---- Runner ----
