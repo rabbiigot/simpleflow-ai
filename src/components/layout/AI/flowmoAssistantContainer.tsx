@@ -1979,6 +1979,7 @@ const FlowmoAssistantContainer: React.FC<FlowmoAssistantContainerProps> = ({
             >
               <Settings className="h-4 w-4" />
             </button>
+            {/* eslint-disable-next-line no-constant-binary-expression */}
             {rightPanelView === "chat" && false && (
               <>
                 <div className="h-5 w-px bg-border" />

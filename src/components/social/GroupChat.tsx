@@ -227,7 +227,7 @@ export default function GroupChat({
         prev.map((m) => {
           if (String(m.id) !== messageId) return m;
           // Remove all reactions from this user
-          let reactions = (m.reactions ?? []).filter(
+          const reactions = (m.reactions ?? []).filter(
             (r) => r.userId !== Number(currentUserId),
           );
           if (added) {
