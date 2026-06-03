@@ -56,7 +56,6 @@ import {
   Clock,
   Edit2,
   Filter,
-  FolderOpen,
   Loader2,
   MoreHorizontal,
   Play,

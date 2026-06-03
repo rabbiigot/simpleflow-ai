@@ -147,6 +147,7 @@ export default function WorkflowBuilder({
     [selectedNode],
   );
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleInsertActionAt = useCallback((_index: number) => {
     // When clicking the "+" button, we show the palette for the user to pick
     // For simplicity, no-op: clicking a palette action already appends it.

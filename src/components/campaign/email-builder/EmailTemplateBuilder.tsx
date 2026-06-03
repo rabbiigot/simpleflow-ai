@@ -34,7 +34,6 @@ import {
   Copy,
   Eye,
   Send,
-  X,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -315,7 +314,7 @@ export default function EmailTemplateBuilder({
     );
   }, []);
 
-  const duplicateBlock = useCallback((blockId: string) => {
+  const _duplicateBlock = useCallback((blockId: string) => {
     setSections((prev) =>
       prev.map((s) => ({
         ...s,

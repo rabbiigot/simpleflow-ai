@@ -7,8 +7,8 @@ import {
   getWorkspaces,
   type Workspace,
 } from "@/lib/backend-api";
-import { ChevronDown, ExternalLink, ListPlus, Plus } from "lucide-react";
-import { useEffect, useState } from "react";
+import { ExternalLink, ListPlus, Plus } from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 type Props = {
