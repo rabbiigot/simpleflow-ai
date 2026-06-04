@@ -99,7 +99,7 @@ const Login = () => {
         <div className="w-full bg-white px-6 py-10 shadow-md sm:px-10 lg:w-[30%] lg:shadow-xl lg:px-10 lg:py-12 overflow-y-auto flex flex-col">
           <div className="mx-auto w-full max-w-sm flex-1 flex flex-col justify-center">
             <div className="relative mb-6 flex flex-col items-center justify-center">
-              <div className="absolute -top-40">
+              <div className="absolute -top-40 pointer-events-none">
                 <img
                   src={sfLogo}
                   alt="Simpleflow"

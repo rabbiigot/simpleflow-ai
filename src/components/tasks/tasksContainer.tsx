@@ -29,7 +29,7 @@ import { Textarea } from "@/components/ui/textArea";
 import {
   createWorkspaceTask,
   getCurrentUserId,
-  getWorkspaces,
+  getWorkspacesPaged,
   type Workspace,
 } from "@/lib/backend-api";
 import { useInvalidation } from "@/hooks/use-invalidation";
@@ -120,7 +120,9 @@ const TasksContainer = () => {
     setErrorMessage(null);
 
     try {
-      const data = await getWorkspaces();
+      const userId = await getCurrentUserId();
+      const result = await getWorkspacesPaged({ userId, pageSize: 100 });
+      const data = result.items;
       setWorkspaces(data);
 
       if (data.length > 0) {
