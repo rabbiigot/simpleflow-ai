@@ -58,7 +58,7 @@ export function AdminDashboard({ token, onLogout }: Props) {
   const [totalPages, setTotalPages] = useState(1);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const fetchUsers = useCallback(
     async (searchTerm: string, p: number) => {
