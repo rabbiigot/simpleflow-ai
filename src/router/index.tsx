@@ -29,6 +29,7 @@ const Login = lazyRouteComponent(() => import("@/pages/Login"));
 const VerifyEmail = lazyRouteComponent(() => import("@/pages/VerifyEmail"));
 const Campaign = lazyRouteComponent(() => import("@/pages/Campaign"));
 const FlowmoChat = lazyRouteComponent(() => import("@/pages/FlowmoChat"));
+const AdminPage = lazyRouteComponent(() => import("@/pages/AdminPage"));
 
 const requireAuth = () => {
   if (typeof window === "undefined") {
@@ -90,6 +91,10 @@ const profileSettingsRoute = createRoute({
   path: "profile/settings",
   component: ProfileSettingsPage,
   beforeLoad: requireAuth,
+  validateSearch: (search: Record<string, unknown>) => ({
+    tab: (search.tab as string) || undefined,
+    connected: (search.connected as string) || undefined,
+  }),
 });
 
 const getStartedRoute = createRoute({
@@ -188,6 +193,12 @@ const flowmoRoute = createRoute({
   beforeLoad: requireAuth,
 });
 
+const adminRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "admin",
+  component: AdminPage,
+});
+
 const routeTree = rootRoute.addChildren([
   SignupRoute,
   LoginRoute,
@@ -208,6 +219,7 @@ const routeTree = rootRoute.addChildren([
   insightsRoute,
   campaignRoute,
   flowmoRoute,
+  adminRoute,
 ]);
 
 const notFoundRoute = new NotFoundRoute({

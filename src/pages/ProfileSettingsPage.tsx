@@ -1,11 +1,12 @@
 import { useEffect } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useSearch } from "@tanstack/react-router";
 
 const ProfileSettingsPage = () => {
   const navigate = useNavigate();
+  const { tab } = useSearch({ strict: false });
   useEffect(() => {
-    navigate({ to: "/social/profile", search: { tab: "user-info" }, replace: true });
-  }, [navigate]);
+    navigate({ to: "/social/profile", search: { tab: tab || "user-info" }, replace: true });
+  }, [navigate, tab]);
   return null;
 };
 

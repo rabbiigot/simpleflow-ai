@@ -25,6 +25,7 @@ const RootLayout = () => {
     "/automation", "/workspace", "/insights", "/analytics",
     "/campaign", "/flowmo",
     "/sign-up", "/login", "/get-started", "/verify-email",
+    "/admin",
   ];
   const isKnownPath = KNOWN_PATHS.some(
     (p) => pathname === p || pathname.startsWith("/workspace/project/") || pathname.startsWith("/social/profile") || pathname.startsWith("/profile/settings"),
@@ -36,6 +37,7 @@ const RootLayout = () => {
       pathname === "/login" ||
       pathname === "/get-started" ||
       pathname === "/verify-email" ||
+      pathname === "/admin" ||
       isNotFound ||
       !isKnownPath
     );

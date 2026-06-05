@@ -11,6 +11,7 @@ export type AuthUser = {
   lastName?: string;
   email?: string;
   role?: string;
+  featureFlags?: Record<string, boolean> | null;
 };
 
 type AuthState = {

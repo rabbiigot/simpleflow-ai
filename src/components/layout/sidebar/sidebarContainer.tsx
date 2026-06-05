@@ -19,10 +19,16 @@ const SidebarContainer = ({
   const { pathname } = useLocation();
   const authUser = useAuthStore((s) => s.user);
   const isAdmin = authUser?.role === "ADMIN";
+  const featureFlags = authUser?.featureFlags;
   const [currentPathname, setCurrentPathname] = useState<string>(pathname);
   const navItems = useMemo(() =>
-    navigationSidebarItems.filter((item) => item.name !== "Campaign" || isAdmin),
-  [isAdmin]);
+    navigationSidebarItems.filter((item) => {
+      if (item.name === "Campaign") {
+        return isAdmin || featureFlags?.campaign === true;
+      }
+      return true;
+    }),
+  [isAdmin, featureFlags]);
   useEffect(() => {
     setCurrentPathname(pathname);
   }, [pathname]);
