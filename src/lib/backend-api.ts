@@ -1478,6 +1478,30 @@ export async function listGitHubPRs(userId: string, search?: string, page = 1, p
   }>(`/integrations/github/prs?${params}`);
 }
 
+// --- GitHub PAT ---
+
+export interface GitHubPatStatus {
+  hasPat: boolean;
+  maskedPat?: string;
+}
+
+export async function saveGitHubPat(userId: string, pat: string) {
+  return apiRequest<{ message: string }>(`/integrations/github/pat?userId=${userId}`, {
+    method: "POST",
+    body: JSON.stringify({ pat }),
+  });
+}
+
+export async function getGitHubPatStatus(userId: string) {
+  return apiRequest<GitHubPatStatus>(`/integrations/github/pat/status?userId=${userId}`);
+}
+
+export async function deleteGitHubPat(userId: string) {
+  return apiRequest<{ message: string }>(`/integrations/github/pat?userId=${userId}`, {
+    method: "DELETE",
+  });
+}
+
 // --- Google Calendar ---
 
 export interface GoogleCalendarStatus {

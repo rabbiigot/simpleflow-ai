@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textArea";
+import GitHubPatDialog from "@/components/social/GitHubPatDialog";
 import githubIcon from "@/assets/github.svg";
 import {
   changePassword,
@@ -38,6 +39,7 @@ import {
   EyeOff,
   Globe,
   ImagePlus,
+  Key,
   KeyRound,
   Link2,
   Loader2,
@@ -123,6 +125,7 @@ export default function ProfileSettings({ embedded, initialTab }: { embedded?: b
   const [githubRepos, setGithubRepos] = useState<GitHubRepoItem[]>([]);
   const [isLoadingRepos, setIsLoadingRepos] = useState(false);
   const [togglingRepo, setTogglingRepo] = useState<string | null>(null);
+  const [showPatDialog, setShowPatDialog] = useState(false);
 
   // Image upload
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
@@ -848,6 +851,10 @@ export default function ProfileSettings({ embedded, initialTab }: { embedded?: b
                           </div>
                           {githubStatus?.connected ? (
                             <div className="flex gap-2">
+                              <Button variant="outline" size="sm" onClick={() => setShowPatDialog(true)} className="gap-1.5">
+                                <Key className="h-3.5 w-3.5" />
+                                Org Token
+                              </Button>
                               <Button variant="outline" size="sm" onClick={() => void handleManageRepos()}>
                                 {showRepos ? "Hide Repos" : "Manage Repos"}
                               </Button>
@@ -969,6 +976,14 @@ export default function ProfileSettings({ embedded, initialTab }: { embedded?: b
                   </div>
                 </CardContent>
               </Card>
+
+              {currentUserId && (
+                <GitHubPatDialog
+                  open={showPatDialog}
+                  onOpenChange={setShowPatDialog}
+                  userId={currentUserId}
+                />
+              )}
             </div>
           )}
 
