@@ -34,7 +34,6 @@ import { PROFILE_STORAGE_KEY, useAuthStore } from "@/store/auth-store";
 import { useNavigate } from "@tanstack/react-router";
 import {
   ArrowLeft,
-  Calendar,
   Camera,
   Eye,
   EyeOff,
