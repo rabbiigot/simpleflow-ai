@@ -851,9 +851,9 @@ export default function ProfileSettings({ embedded, initialTab }: { embedded?: b
                           </div>
                           {githubStatus?.connected ? (
                             <div className="flex gap-2">
-                              <Button variant="outline" size="sm" onClick={() => setShowPatDialog(true)} className="gap-1.5">
+                              <Button size="sm" onClick={() => setShowPatDialog(true)} className="gap-1.5 bg-indigo-600 text-white hover:bg-indigo-700">
                                 <Key className="h-3.5 w-3.5" />
-                                Org Token
+                                PAT Token
                               </Button>
                               <Button variant="outline" size="sm" onClick={() => void handleManageRepos()}>
                                 {showRepos ? "Hide Repos" : "Manage Repos"}
