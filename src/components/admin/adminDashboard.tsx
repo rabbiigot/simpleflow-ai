@@ -11,6 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
+  Building2,
   ChevronLeft,
   ChevronRight,
   LogOut,
@@ -20,6 +21,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { AdminOrganizations } from "./adminOrganizations";
 
 const API_BASE =
   import.meta.env.VITE_API_BASE_URL?.trim() || "http://localhost:3000";
@@ -52,6 +54,7 @@ type Props = {
 };
 
 export function AdminDashboard({ token, onLogout }: Props) {
+  const [view, setView] = useState<"organizations" | "users">("organizations");
   const [users, setUsers] = useState<User[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -200,17 +203,42 @@ export function AdminDashboard({ token, onLogout }: Props) {
             </div>
             <div>
               <h1 className="text-lg font-semibold">SimpleFlow Admin</h1>
-              <p className="text-xs text-muted-foreground">User Management</p>
+              <p className="text-xs text-muted-foreground">
+                Organizations &amp; Accounts
+              </p>
             </div>
           </div>
-          <Button variant="outline" size="sm" onClick={onLogout}>
-            <LogOut className="mr-2 h-4 w-4" />
-            Sign Out
-          </Button>
+          <div className="flex items-center gap-2">
+            <div className="flex rounded-lg border p-0.5">
+              <Button
+                variant={view === "organizations" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setView("organizations")}
+              >
+                <Building2 className="mr-2 h-4 w-4" />
+                Organizations
+              </Button>
+              <Button
+                variant={view === "users" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setView("users")}
+              >
+                <Users className="mr-2 h-4 w-4" />
+                Accounts
+              </Button>
+            </div>
+            <Button variant="outline" size="sm" onClick={onLogout}>
+              <LogOut className="mr-2 h-4 w-4" />
+              Sign Out
+            </Button>
+          </div>
         </div>
       </div>
 
-      {/* Content */}
+      {view === "organizations" ? (
+        <AdminOrganizations token={token} onLogout={onLogout} />
+      ) : (
+      /* Content */
       <div className="mx-auto max-w-7xl px-6 py-6">
         {/* Stats & Search */}
         <div className="mb-6 flex items-center justify-between gap-4">
@@ -356,6 +384,7 @@ export function AdminDashboard({ token, onLogout }: Props) {
           )}
         </div>
       </div>
+      )}
     </div>
   );
 }

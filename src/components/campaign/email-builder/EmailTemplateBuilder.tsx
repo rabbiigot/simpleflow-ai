@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from "react";
+import DOMPurify from "dompurify";
 import {
   closestCenter,
   DndContext,
@@ -700,7 +701,11 @@ export default function EmailTemplateBuilder({
 
           {/* Email content — gray bg with centered white card */}
           <div className="flex-1 overflow-auto min-h-0">
-            <div dangerouslySetInnerHTML={{ __html: previewHtml }} />
+            <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(previewHtml, {
+  ALLOWED_TAGS: ["div", "p", "span", "a", "img", "h1", "h2", "h3", "h4", "h5", "h6", "b", "i", "u", "em", "strong", "br", "table", "tr", "td", "th", "hr", "thead", "tbody"],
+  ALLOWED_ATTR: ["href", "src", "alt", "style", "class", "width", "height", "cellpadding", "cellspacing", "border", "align"],
+  ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
+}) }} />
           </div>
 
           {/* Send Test Email */}

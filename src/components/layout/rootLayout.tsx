@@ -3,6 +3,7 @@ import { Outlet, useRouterState } from "@tanstack/react-router";
 import { createContext, useContext, useMemo, useState } from "react";
 import FlowmoAssistantContainer from "./AI/flowmoAssistantContainer";
 import HeaderContainer from "./header/headerContainer";
+import PlanLimitModal from "./PlanLimitModal";
 
 const AiPanelContext = createContext<"expanded" | "collapsed">("collapsed");
 export const useAiPanelState = () => useContext(AiPanelContext);
@@ -93,6 +94,7 @@ const RootLayout = () => {
               </div>
             )}
           </div>
+          <PlanLimitModal />
         </>
       )}
     </>

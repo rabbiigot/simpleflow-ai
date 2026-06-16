@@ -6,18 +6,58 @@ import {
   Bot,
   Check,
   Clock,
+  Megaphone,
   MessageSquare,
   Target,
+  Users,
   Zap,
 } from "lucide-react";
 import React, { useEffect, useState } from "react";
-import SigneInContainer from "../singin/signinContainer";
 import logoOnly from "../../assets/logoOnly.png";
 import namelogo from "../../assets/namelogo.png";
 import namelogoWhite from "../../assets/namelogo-white.svg";
-import landingPageImg from "../../assets/landingpage.png";
+import carousel1 from "../../assets/carousel-1.png";
+import carousel2 from "../../assets/carousel-2.png";
+import carousel3 from "../../assets/carousel-3.png";
+import carousel4 from "../../assets/carousel-4.png";
+import carousel5 from "../../assets/carousel-5.png";
 import { listPlans, type PlanData } from "@/lib/backend-api";
 import { useNavigate } from "@tanstack/react-router";
+
+const CAROUSEL_IMAGES = [carousel1, carousel2, carousel3, carousel4, carousel5];
+
+// Cross-fading slides + dots, fills its (positioned) parent.
+const HeroSlides: React.FC<{
+  slide: number;
+  setSlide: (i: number) => void;
+}> = ({ slide, setSlide }) => (
+  <>
+    {CAROUSEL_IMAGES.map((img, i) => (
+      <img
+        key={i}
+        src={img}
+        alt={`SimpleFlow preview ${i + 1}`}
+        className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ease-in-out ${
+          i === slide ? "opacity-100" : "opacity-0"
+        }`}
+        loading={i === 0 ? "eager" : "lazy"}
+      />
+    ))}
+    <div className="absolute bottom-4 left-1/2 z-10 flex -translate-x-1/2 gap-1.5">
+      {CAROUSEL_IMAGES.map((_, i) => (
+        <button
+          key={i}
+          type="button"
+          aria-label={`Go to slide ${i + 1}`}
+          onClick={() => setSlide(i)}
+          className={`h-1.5 rounded-full transition-all ${
+            i === slide ? "w-5 bg-white" : "w-1.5 bg-white/50 hover:bg-white/80"
+          }`}
+        />
+      ))}
+    </div>
+  </>
+);
 
 // Logo component matching the app's sidebar header style
 const Logo = () => {
@@ -65,12 +105,14 @@ const FeatureCard: React.FC<FeatureProps> = ({ icon, title, description }) => (
   </Card>
 );
 
+const TIER_ORDER = ["FREE", "PRO", "TEAM", "ENTERPRISE"];
+
 const GetStartedContainer: React.FC = () => {
-  const [open, setOpen] = useState<boolean>(false);
   const [plans, setPlans] = useState<PlanData[]>([]);
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">(
     "monthly",
   );
+  const [slide, setSlide] = useState(0);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -79,7 +121,20 @@ const GetStartedContainer: React.FC = () => {
       .catch(() => {});
   }, []);
 
-  const goSignUp = () => navigate({ to: "/sign-up" });
+  // Auto-rotate the hero carousel every 4.5s
+  useEffect(() => {
+    const id = setInterval(
+      () => setSlide((s) => (s + 1) % CAROUSEL_IMAGES.length),
+      4500,
+    );
+    return () => clearInterval(id);
+  }, []);
+
+  const goSignUp = (planTier?: string) =>
+    navigate({
+      to: "/sign-up",
+      search: planTier ? { plan: planTier } : undefined,
+    });
 
   const scrollTo = (id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
@@ -87,7 +142,6 @@ const GetStartedContainer: React.FC = () => {
 
   return (
     <div className="w-full min-h-screen bg-background overflow-x-hidden">
-      <SigneInContainer open={open} onOpenChange={setOpen} />
 
       {/* Navigation */}
       <header className="fixed top-0 left-0 w-full z-20 bg-background/80 backdrop-blur-md border-b border-border">
@@ -117,13 +171,13 @@ const GetStartedContainer: React.FC = () => {
             <Button
               variant="ghost"
               className="text-muted-foreground hover:text-foreground"
-              onClick={() => setOpen(true)}
+              onClick={() => navigate({ to: "/login" })}
             >
               Sign In
             </Button>
             <Button
               className="bg-linear-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
-              onClick={goSignUp}
+              onClick={() => goSignUp()}
             >
               Try Free
             </Button>
@@ -132,12 +186,20 @@ const GetStartedContainer: React.FC = () => {
       </header>
 
       {/* Hero */}
-      <section className="relative pt-32 pb-20 md:pt-40 md:pb-32 overflow-hidden">
+      <section className="relative overflow-hidden">
         {/* Background gradient matching login page style */}
         <div className="absolute inset-x-0 top-0 h-3/5 bg-linear-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-950/30 dark:via-indigo-950/20 dark:to-purple-950/10 opacity-90" />
 
-        <div className="relative z-10 max-w-7xl mx-auto px-4 grid md:grid-cols-2 gap-12 items-center">
-          <div className="text-left py-10">
+        {/* Desktop: full-bleed carousel pinned to the top-right edge with a slanted left edge */}
+        <div
+          className="hidden md:block absolute top-0 right-0 bottom-0 w-[56%] overflow-hidden shadow-2xl z-0"
+          style={{ clipPath: "polygon(0 0, 100% 0, 100% 100%, 20% 100%)" }}
+        >
+          <HeroSlides slide={slide} setSlide={setSlide} />
+        </div>
+
+        <div className="relative z-10 max-w-7xl mx-auto px-4 pt-28 pb-12 md:pt-40 md:pb-32">
+          <div className="text-left md:max-w-lg lg:max-w-xl">
             <h1 className="text-5xl md:text-6xl font-semibold tracking-tight mb-4">
               <span className="text-foreground">Flow. Automate.</span>
               <br />
@@ -154,7 +216,7 @@ const GetStartedContainer: React.FC = () => {
               <Button
                 size="lg"
                 className="text-lg py-7 px-8 bg-linear-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-xl"
-                onClick={goSignUp}
+                onClick={() => goSignUp()}
               >
                 Start Free Trial <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
@@ -167,17 +229,10 @@ const GetStartedContainer: React.FC = () => {
                 See Features
               </Button>
             </div>
-          </div>
 
-          <div className="flex justify-center md:justify-end">
-            <div className="w-full max-w-xl h-auto relative">
-              <img
-                src={landingPageImg}
-                alt="SimpleFlow App Mockup"
-                className="w-full h-auto object-contain shadow-2xl rounded-[12px] transform translate-y-8"
-              />
-              <div className="absolute -bottom-10 right-0 w-48 h-48 bg-indigo-300 dark:bg-indigo-800 rounded-full mix-blend-multiply dark:mix-blend-soft-light filter blur-xl opacity-30 animate-blob" />
-              <div className="absolute -top-10 left-0 w-36 h-36 bg-purple-300 dark:bg-purple-800 rounded-full mix-blend-multiply dark:mix-blend-soft-light filter blur-xl opacity-20 animate-blob" />
+            {/* Mobile: in-flow carousel (no slant) */}
+            <div className="md:hidden relative aspect-video w-full overflow-hidden rounded-[12px] shadow-2xl mt-10">
+              <HeroSlides slide={slide} setSlide={setSlide} />
             </div>
           </div>
         </div>
@@ -227,6 +282,16 @@ const GetStartedContainer: React.FC = () => {
               title="Analytics & Reports"
               description="Productivity insights, task completion trends, time allocation, and exportable PDF/CSV reports."
             />
+            <FeatureCard
+              icon={<Megaphone className="h-6 w-6" />}
+              title="Email Campaigns"
+              description="Build contact lists, design email templates, and send campaigns with open and click tracking."
+            />
+            <FeatureCard
+              icon={<Users className="h-6 w-6" />}
+              title="Social Feed"
+              description="Share updates with your organization, react, and comment — a private social space for your team."
+            />
           </div>
         </div>
       </section>
@@ -264,7 +329,7 @@ const GetStartedContainer: React.FC = () => {
               >
                 Yearly{" "}
                 <span className="text-green-600 dark:text-green-400 text-xs ml-1">
-                  Save 17%
+                  Save up to 17%
                 </span>
               </button>
             </div>
@@ -273,82 +338,74 @@ const GetStartedContainer: React.FC = () => {
           <div className="grid md:grid-cols-4 gap-6">
             {(plans.length > 0
               ? plans
-              : [
+              : ([
                   {
-                    id: 0,
                     name: "Free",
-                    tier: "FREE" as const,
+                    tier: "FREE",
                     priceMonthly: 0,
                     priceYearly: 0,
-                    maxMembers: 3,
-                    maxWorkspaces: 2,
                     features: [
                       "3 team members",
-                      "2 workspaces",
+                      "1 workspace",
+                      "5 tasks per workspace",
                       "Basic analytics",
                       "Chat",
                     ],
-                    isActive: true,
                   },
                   {
-                    id: 0,
-                    name: "Starter",
-                    tier: "STARTER" as const,
+                    name: "Pro",
+                    tier: "PRO",
                     priceMonthly: 12,
                     priceYearly: 120,
-                    maxMembers: 10,
-                    maxWorkspaces: 10,
                     features: [
-                      "10 team members",
-                      "10 workspaces",
-                      "Advanced analytics",
-                      "Automations",
-                      "Time tracking",
+                      "$12 / user / month",
+                      "12 org workspaces",
+                      "1 personal workspace per member",
+                      "Unlimited tasks",
+                      "3 automations",
+                      "Email campaigns (1 template, 10 lists, 500 sends/mo)",
+                      "AI assistant (Flowmo)",
                       "Email support",
                     ],
-                    isActive: true,
                   },
                   {
-                    id: 0,
-                    name: "Pro",
-                    tier: "PRO" as const,
-                    priceMonthly: 25,
-                    priceYearly: 250,
-                    maxMembers: 50,
-                    maxWorkspaces: -1,
+                    name: "Team",
+                    tier: "TEAM",
+                    priceMonthly: 39,
+                    priceYearly: 360,
                     features: [
-                      "50 team members",
-                      "Unlimited workspaces",
-                      "AI assistant (Flowmo)",
-                      "Custom automations",
-                      "Priority support",
-                      "Advanced roles",
-                      "Finance tracking",
+                      "$39 / user / month",
+                      "Unlimited org workspaces",
+                      "5 personal workspaces per member",
+                      "30 automations (org-wide)",
+                      "Email campaigns",
+                      "Unlimited contact lists, 5,000 sends/mo",
+                      "24/7 SLA priority support",
                     ],
-                    isActive: true,
                   },
                   {
-                    id: 0,
                     name: "Enterprise",
-                    tier: "ENTERPRISE" as const,
-                    priceMonthly: 60,
-                    priceYearly: 600,
-                    maxMembers: -1,
-                    maxWorkspaces: -1,
+                    tier: "ENTERPRISE",
+                    priceMonthly: 0,
+                    priceYearly: 0,
                     features: [
-                      "Unlimited members",
-                      "Unlimited workspaces",
-                      "Everything in Pro",
+                      "Custom pricing",
+                      "Unlimited everything",
+                      "Everything in Team",
                       "SSO / SAML",
                       "Audit logs",
-                      "Dedicated support",
                       "Custom integrations",
-                      "SLA guarantee",
+                      "24/7 SLA priority support",
                     ],
-                    isActive: true,
                   },
-                ]
-            ).map((plan) => {
+                ] as PlanData[])
+            )
+              .slice()
+              .sort(
+                (a, b) =>
+                  TIER_ORDER.indexOf(a.tier) - TIER_ORDER.indexOf(b.tier),
+              )
+              .map((plan) => {
               const perMonth =
                 billingCycle === "yearly"
                   ? Math.round(plan.priceYearly / 12)
@@ -374,16 +431,25 @@ const GetStartedContainer: React.FC = () => {
                       {plan.name}
                     </h3>
                     <div className="mb-6">
-                      <span className="text-4xl font-semibold text-foreground">
-                        ${perMonth}
-                      </span>
-                      <span className="text-muted-foreground text-sm">
-                        /user/mo
-                      </span>
-                      {billingCycle === "yearly" && plan.priceYearly > 0 && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          ${plan.priceYearly}/user billed yearly
-                        </p>
+                      {plan.tier === "ENTERPRISE" ? (
+                        <span className="text-4xl font-semibold text-foreground">
+                          Custom
+                        </span>
+                      ) : (
+                        <>
+                          <span className="text-4xl font-semibold text-foreground">
+                            ${perMonth}
+                          </span>
+                          <span className="text-muted-foreground text-sm">
+                            /user/mo
+                          </span>
+                          {billingCycle === "yearly" &&
+                            plan.priceYearly > 0 && (
+                              <p className="text-xs text-muted-foreground mt-1">
+                                ${plan.priceYearly}/user billed yearly
+                              </p>
+                            )}
+                        </>
                       )}
                     </div>
                     <Button
@@ -393,7 +459,7 @@ const GetStartedContainer: React.FC = () => {
                           : ""
                       }`}
                       variant={isPro ? "default" : "outline"}
-                      onClick={goSignUp}
+                      onClick={() => goSignUp(plan.tier)}
                     >
                       {plan.tier === "FREE"
                         ? "Get Started Free"
@@ -438,7 +504,7 @@ const GetStartedContainer: React.FC = () => {
           <Button
             size="lg"
             className="text-xl py-8 px-10 bg-white text-indigo-700 hover:bg-blue-50 shadow-2xl font-semibold"
-            onClick={goSignUp}
+            onClick={() => goSignUp()}
           >
             Create My Free Workspace{" "}
             <ArrowRight className="ml-2 h-5 w-5" />

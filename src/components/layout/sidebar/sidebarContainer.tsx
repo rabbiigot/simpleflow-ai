@@ -2,6 +2,7 @@ import { Card } from "@/components/ui/card";
 import { navigationSidebarItems } from "@/constants/navigation/sidebar";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/auth-store";
+import { usePlanEntitlements } from "@/hooks/use-plan-entitlements";
 import { Link, useLocation } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import FooterContainer from "./footerContainer";
@@ -20,15 +21,25 @@ const SidebarContainer = ({
   const authUser = useAuthStore((s) => s.user);
   const isAdmin = authUser?.role === "ADMIN";
   const featureFlags = authUser?.featureFlags;
+  const entitlements = usePlanEntitlements();
   const [currentPathname, setCurrentPathname] = useState<string>(pathname);
   const navItems = useMemo(() =>
     navigationSidebarItems.filter((item) => {
+      // Automation requires a plan that allows automations (Free = 0).
+      if (item.name === "Automation") {
+        return isAdmin || (entitlements ? entitlements.maxAutomations !== 0 : false);
+      }
+      // Campaign requires a plan with email campaigns (or an explicit feature flag).
       if (item.name === "Campaign") {
-        return isAdmin || featureFlags?.campaign === true;
+        return (
+          isAdmin ||
+          featureFlags?.campaign === true ||
+          (entitlements ? entitlements.emailCampaigns : false)
+        );
       }
       return true;
     }),
-  [isAdmin, featureFlags]);
+  [isAdmin, featureFlags, entitlements]);
   useEffect(() => {
     setCurrentPathname(pathname);
   }, [pathname]);

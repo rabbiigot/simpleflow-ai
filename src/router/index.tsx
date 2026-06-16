@@ -38,7 +38,19 @@ const requireAuth = () => {
 
   const token = localStorage.getItem(AUTH_TOKEN_KEY);
   if (!token) {
-    throw redirect({ to: "/login" });
+    // Land logged-out visitors on the public landing page (has Sign In + Sign Up)
+    throw redirect({ to: "/get-started" });
+  }
+};
+
+// For public auth pages: send already-authenticated users into the app.
+const redirectIfAuthed = () => {
+  if (typeof window === "undefined") {
+    return;
+  }
+  const token = localStorage.getItem(AUTH_TOKEN_KEY);
+  if (token) {
+    throw redirect({ to: "/" });
   }
 };
 
@@ -101,6 +113,7 @@ const getStartedRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "get-started",
   component: GetStarted,
+  beforeLoad: redirectIfAuthed,
 });
 
 const financeRoute = createRoute({
@@ -162,12 +175,18 @@ const SignupRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "sign-up",
   component: Signup,
+  beforeLoad: redirectIfAuthed,
+  validateSearch: (search: Record<string, unknown>) => ({
+    plan: (search.plan as string) || undefined,
+    email: (search.email as string) || undefined,
+  }),
 });
 
 const LoginRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "login",
   component: Login,
+  beforeLoad: redirectIfAuthed,
 });
 
 const VerifyEmailRoute = createRoute({
@@ -225,6 +244,13 @@ const routeTree = rootRoute.addChildren([
 const notFoundRoute = new NotFoundRoute({
   getParentRoute: () => rootRoute,
   component: NotFound,
+  beforeLoad: () => {
+    // Logged-out users hitting an unknown path land on the public landing page.
+    if (typeof window === "undefined") return;
+    if (!localStorage.getItem(AUTH_TOKEN_KEY)) {
+      throw redirect({ to: "/get-started" });
+    }
+  },
 });
 
 const router = createRouter({

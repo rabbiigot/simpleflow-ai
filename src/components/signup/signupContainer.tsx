@@ -1,7 +1,13 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { COUNTRIES, type Country } from "@/constants/countries";
-import { resendVerification, signUp } from "@/lib/backend-api";
+import {
+  listPlans,
+  resendVerification,
+  signUp,
+  type PlanData,
+  type PlanTier,
+} from "@/lib/backend-api";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/auth-store";
 import sfLogo from "@/assets/chatgptlogosf.png";
@@ -17,6 +23,10 @@ const signupSchema = z
   .object({
     firstName: z.string().trim().min(1, "First name is required."),
     lastName: z.string().trim().min(1, "Last name is required."),
+    organizationName: z
+      .string()
+      .trim()
+      .min(1, "Organization name is required."),
     email: z
       .string()
       .trim()
@@ -43,9 +53,26 @@ const inputError =
 const SignupContainer = () => {
   const clearAuth = useAuthStore((store) => store.clearAuth);
 
-  const emailFromUrl = typeof window !== "undefined"
-    ? new URLSearchParams(window.location.search).get("email") || ""
-    : "";
+  const searchParams =
+    typeof window !== "undefined"
+      ? new URLSearchParams(window.location.search)
+      : new URLSearchParams();
+  const emailFromUrl = searchParams.get("email") || "";
+  const planFromUrl = (searchParams.get("plan") || "").toUpperCase();
+
+  const validTiers: PlanTier[] = ["FREE", "PRO", "TEAM", "ENTERPRISE"];
+  const [plans, setPlans] = useState<PlanData[]>([]);
+  const [selectedTier, setSelectedTier] = useState<PlanTier>(
+    validTiers.includes(planFromUrl as PlanTier)
+      ? (planFromUrl as PlanTier)
+      : "FREE",
+  );
+
+  useEffect(() => {
+    listPlans()
+      .then(setPlans)
+      .catch(() => setPlans([]));
+  }, []);
 
   const [signupDone, setSignupDone] = useState(false);
   const [signupEmail, setSignupEmail] = useState("");
@@ -68,6 +95,7 @@ const SignupContainer = () => {
     defaultValues: {
       firstName: "",
       lastName: "",
+      organizationName: "",
       email: emailFromUrl,
       phoneNumber: "",
       country: "",
@@ -113,11 +141,13 @@ const SignupContainer = () => {
       const response = await signUp({
         firstName: values.firstName,
         lastName: values.lastName,
+        organizationName: values.organizationName,
         email: values.email,
         phoneNumber: fullPhone,
         country: values.country,
         address: values.address?.trim() || undefined,
         password: values.password,
+        planTier: selectedTier,
       });
 
       toast.success(response.message || "Account created. Check your email.");
@@ -210,6 +240,7 @@ const SignupContainer = () => {
               const first =
                 formErrors.firstName?.message ||
                 formErrors.lastName?.message ||
+                formErrors.organizationName?.message ||
                 formErrors.email?.message ||
                 formErrors.country?.message ||
                 formErrors.password?.message ||
@@ -252,6 +283,57 @@ const SignupContainer = () => {
                   {errors.lastName.message}
                 </p>
               )}
+            </div>
+
+            <div className="md:col-span-2">
+              <Label htmlFor="organizationName" className="mb-1 text-gray-700">
+                Organization Name
+              </Label>
+              <Input
+                id="organizationName"
+                {...register("organizationName")}
+                aria-invalid={Boolean(errors.organizationName)}
+                className={cn(
+                  errors.organizationName ? inputError : inputBase,
+                )}
+                placeholder="Acme Inc."
+              />
+              {errors.organizationName?.message && (
+                <p className="mt-1 text-sm text-red-700">
+                  {errors.organizationName.message}
+                </p>
+              )}
+            </div>
+
+            <div className="md:col-span-2">
+              <Label className="mb-1 text-gray-700">Choose a plan</Label>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {(plans.length > 0
+                  ? plans.map((p) => ({ tier: p.tier, name: p.name }))
+                  : validTiers.map((t) => ({
+                      tier: t,
+                      name: t.charAt(0) + t.slice(1).toLowerCase(),
+                    }))
+                ).map((p) => (
+                  <button
+                    key={p.tier}
+                    type="button"
+                    onClick={() => setSelectedTier(p.tier as PlanTier)}
+                    className={cn(
+                      "rounded-md border px-3 py-2 text-sm transition",
+                      selectedTier === p.tier
+                        ? "border-indigo-500 bg-indigo-50 font-medium text-indigo-700"
+                        : "border-gray-300 bg-white text-gray-700 hover:border-indigo-300",
+                    )}
+                  >
+                    {p.name}
+                  </button>
+                ))}
+              </div>
+              <p className="mt-1 text-xs text-gray-500">
+                You'll start on this plan. Paid plans are activated after
+                checkout.
+              </p>
             </div>
 
             <div className="md:col-span-2">

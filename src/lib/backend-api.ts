@@ -282,6 +282,8 @@ export type SignUpPayload = {
   phoneNumber?: string;
   country: string;
   address?: string;
+  organizationName?: string;
+  planTier?: "FREE" | "PRO" | "TEAM" | "ENTERPRISE";
 };
 
 export type LoginPayload = {
@@ -328,6 +330,7 @@ async function apiRequest<T>(path: string, init?: RequestInit): Promise<T> {
     ...init,
     headers: {
       "Content-Type": "application/json",
+      "X-Requested-With": "XMLHttpRequest",
       ...authHeaders,
       ...(init?.headers ?? {}),
     },
@@ -338,13 +341,21 @@ async function apiRequest<T>(path: string, init?: RequestInit): Promise<T> {
   if (!response.ok) {
     const msg = normalizeErrorMessage(data, response.status);
 
-    // Handle unauthorized — clear auth and redirect to login
+    // Handle rate limiting
+    if (response.status === 429 && typeof window !== "undefined") {
+      const retryAfter = response.headers.get("Retry-After") || "60";
+      throw new Error(
+        `Too many requests. Please wait ${retryAfter} seconds and try again.`,
+      );
+    }
+
+    // Handle unauthorized — clear auth and send to the public landing page
     if (response.status === 401 && typeof window !== "undefined") {
       localStorage.removeItem("simpleflow_auth_state");
       localStorage.removeItem("simpleflow_token");
       localStorage.removeItem("simpleflow_user_id");
-      window.location.href = "/login";
-      throw new Error("Session expired. Redirecting to login...");
+      window.location.href = "/get-started";
+      throw new Error("Session expired. Redirecting...");
     }
 
     // Detect stale session: user was deleted (DB wipe) but token still exists
@@ -353,8 +364,24 @@ async function apiRequest<T>(path: string, init?: RequestInit): Promise<T> {
       localStorage.removeItem("simpleflow_auth_state");
       localStorage.removeItem("simpleflow_token");
       localStorage.removeItem("simpleflow_user_id");
-      window.location.href = "/login";
-      throw new Error("Session expired. Redirecting to login...");
+      window.location.href = "/get-started";
+      throw new Error("Session expired. Redirecting...");
+    }
+
+    // Plan limit reached — surface a global upgrade modal (except Flowmo energy,
+    // which is shown inline in the chat).
+    const errCode = (data as { code?: string })?.code;
+    const errLimit = (data as { limit?: string })?.limit;
+    if (
+      errCode === "PLAN_LIMIT_EXCEEDED" &&
+      errLimit !== "dailyAiEnergy" &&
+      typeof window !== "undefined"
+    ) {
+      window.dispatchEvent(
+        new CustomEvent("simpleflow:plan-limit", {
+          detail: { message: msg, limit: errLimit },
+        }),
+      );
     }
 
     throw new Error(msg);
@@ -1562,6 +1589,57 @@ export async function syncGoogleCalendar(userId: string) {
   });
 }
 
+// --- Trello ---
+
+export interface TrelloStatus {
+  connected: boolean;
+  trelloUsername?: string;
+  connectedAt?: string;
+}
+
+export interface TrelloBoardItem {
+  id: string;
+  name: string;
+  description?: string;
+}
+
+export async function getTrelloAuthUrl() {
+  return apiRequest<{ url: string }>(`/integrations/trello/auth`);
+}
+
+export async function getTrelloStatus(userId: string) {
+  return apiRequest<TrelloStatus>(
+    `/integrations/trello/status?userId=${userId}`,
+  );
+}
+
+export async function connectTrello(userId: string, token: string) {
+  return apiRequest<{ id: number; trelloUsername: string }>(
+    `/integrations/trello/connect`,
+    { method: "POST", body: JSON.stringify({ userId, token }) },
+  );
+}
+
+export async function disconnectTrello(userId: string) {
+  return apiRequest<{ message: string }>(
+    `/integrations/trello/disconnect?userId=${userId}`,
+    { method: "DELETE" },
+  );
+}
+
+export async function listTrelloBoards(userId: string) {
+  return apiRequest<TrelloBoardItem[]>(
+    `/integrations/trello/boards?userId=${userId}`,
+  );
+}
+
+export async function importTrelloBoard(userId: string, boardId: string) {
+  return apiRequest<{ id: number; name: string }>(
+    `/integrations/trello/boards/${boardId}/import?userId=${userId}`,
+    { method: "POST" },
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Automations (Zapier-like workflow engine)
 // ---------------------------------------------------------------------------
@@ -2327,7 +2405,7 @@ export async function updateOrgMemberRole(
 // Billing / Subscriptions
 // ---------------------------------------------------------------------------
 
-export type PlanTier = "FREE" | "STARTER" | "PRO" | "ENTERPRISE";
+export type PlanTier = "FREE" | "PRO" | "TEAM" | "ENTERPRISE";
 
 export type PlanData = {
   id: number;
@@ -2336,10 +2414,52 @@ export type PlanData = {
   priceMonthly: number;
   priceYearly: number;
   maxMembers: number;
-  maxWorkspaces: number;
+  maxOrgWorkspaces: number;
+  maxPersonalWorkspacesPerUser: number;
+  maxInvitesPerPersonalWorkspace: number;
+  maxTasksPerWorkspace: number;
+  maxAutomations: number;
+  emailCampaigns: boolean;
+  maxEmailTemplates: number;
+  maxContactLists: number;
+  maxCampaignSendsPerMonth: number;
+  dailyAiEnergy: number;
   features: string[];
   isActive: boolean;
 };
+
+export type AiEnergyStatus = {
+  unlimited: boolean;
+  limit: number;
+  used: number;
+  remaining: number;
+  costPerPrompt: number;
+};
+
+export async function getAiEnergy(userId: string) {
+  return apiRequest<AiEnergyStatus>(
+    `/ai-orchestration/energy?userId=${userId}`,
+  );
+}
+
+export type PlanEntitlements = {
+  tier: PlanTier;
+  name: string;
+  maxMembers: number;
+  maxOrgWorkspaces: number;
+  maxPersonalWorkspacesPerUser: number;
+  maxTasksPerWorkspace: number;
+  maxAutomations: number;
+  emailCampaigns: boolean;
+  maxEmailTemplates: number;
+  maxContactLists: number;
+  maxCampaignSendsPerMonth: number;
+  dailyAiEnergy: number;
+};
+
+export async function getMyEntitlements() {
+  return apiRequest<PlanEntitlements>(`/billing/entitlements`);
+}
 
 export type SubscriptionData = {
   id: number;
@@ -2378,6 +2498,35 @@ export async function createFreeSubscription(organizationId: number) {
   return apiRequest<SubscriptionData>(
     `/billing/subscription/${organizationId}/free`,
     { method: "POST" },
+  );
+}
+
+export type UsageMeter = { used: number; limit: number };
+
+export type OrgUsage = {
+  plan: { name: string; tier: PlanTier; emailCampaigns: boolean };
+  usage: {
+    members: UsageMeter;
+    orgWorkspaces: UsageMeter;
+    personalWorkspaces: UsageMeter;
+    automations: UsageMeter;
+    emailTemplates: UsageMeter;
+    contactLists: UsageMeter;
+    campaignSends: UsageMeter;
+  };
+};
+
+export async function getOrgUsage(organizationId: number) {
+  return apiRequest<OrgUsage>(`/billing/usage/${organizationId}`);
+}
+
+export async function cancelSubscription(
+  organizationId: number,
+  immediate = true,
+) {
+  return apiRequest<SubscriptionData>(
+    `/billing/subscription/${organizationId}/cancel`,
+    { method: "POST", body: JSON.stringify({ immediate }) },
   );
 }
 

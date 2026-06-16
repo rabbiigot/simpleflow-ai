@@ -8,6 +8,21 @@ function escapeHtml(text: string): string {
     .replace(/"/g, "&quot;");
 }
 
+function sanitizeUrl(url: string): string {
+  if (!url) return "";
+  try {
+    const parsed = new URL(url);
+    if (!["http:", "https:", "mailto:"].includes(parsed.protocol)) {
+      return "";
+    }
+    return url;
+  } catch {
+    // Allow relative URLs and data URIs for images only
+    if (url.startsWith("/") || url.startsWith("data:image/")) return url;
+    return "";
+  }
+}
+
 function renderBlockHtml(block: BlockData, globalStyles: GlobalStyles): string {
   const align = block.styles.textAlign || "left";
   const bg = block.styles.backgroundColor ? `background-color:${block.styles.backgroundColor};` : "";
@@ -47,21 +62,21 @@ function renderBlockHtml(block: BlockData, globalStyles: GlobalStyles): string {
     }
 
     case "logo": {
-      const logoImg = `<img src="${block.content.src || ""}" alt="${escapeHtml(block.content.alt || "Logo")}" style="max-height:60px;height:auto;display:inline-block;" />`;
-      const logoInner = block.content.href ? `<a href="${block.content.href}" style="text-decoration:none;">${logoImg}</a>` : logoImg;
+      const logoImg = `<img src="${sanitizeUrl(block.content.src || "")}" alt="${escapeHtml(block.content.alt || "Logo")}" style="max-height:60px;height:auto;display:inline-block;" />`;
+      const logoInner = block.content.href ? `<a href="${sanitizeUrl(block.content.href || "")}" style="text-decoration:none;">${logoImg}</a>` : logoImg;
       return wrapContent(logoInner);
     }
 
     case "image":
-      return wrapContent(`<img src="${block.content.src || ""}" alt="${escapeHtml(block.content.alt || "")}" style="max-width:100%;height:auto;display:inline-block;" />`);
+      return wrapContent(`<img src="${sanitizeUrl(block.content.src || "")}" alt="${escapeHtml(block.content.alt || "")}" style="max-width:100%;height:auto;display:inline-block;" />`);
 
     case "image-text": {
       const pos = block.content.imagePosition || "left";
       if (pos === "center") {
-        return wrapContent(`<img src="${block.content.src || ""}" alt="${escapeHtml(block.content.alt || "")}" style="max-width:100%;height:auto;display:block;margin:0 auto 8px;" /><p style="margin:0;line-height:1.6;font-family:${globalStyles.fontFamily};font-size:${fs};color:${color};">${escapeHtml(block.content.text || "")}</p>`);
+        return wrapContent(`<img src="${sanitizeUrl(block.content.src || "")}" alt="${escapeHtml(block.content.alt || "")}" style="max-width:100%;height:auto;display:block;margin:0 auto 8px;" /><p style="margin:0;line-height:1.6;font-family:${globalStyles.fontFamily};font-size:${fs};color:${color};">${escapeHtml(block.content.text || "")}</p>`);
       }
       const imgLeft = pos === "left";
-      const imgCell = `<td style="width:50%;padding:5px;vertical-align:top;"><img src="${block.content.src || ""}" alt="${escapeHtml(block.content.alt || "")}" style="max-width:100%;height:auto;" /></td>`;
+      const imgCell = `<td style="width:50%;padding:5px;vertical-align:top;"><img src="${sanitizeUrl(block.content.src || "")}" alt="${escapeHtml(block.content.alt || "")}" style="max-width:100%;height:auto;" /></td>`;
       const textCell = `<td style="width:50%;padding:5px;vertical-align:top;font-family:${globalStyles.fontFamily};font-size:${fs};color:${color};"><p style="margin:0;line-height:1.6;">${escapeHtml(block.content.text || "")}</p></td>`;
       return wrapContent(`<table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>${imgLeft ? imgCell + textCell : textCell + imgCell}</tr></table>`);
     }
@@ -71,16 +86,16 @@ function renderBlockHtml(block: BlockData, globalStyles: GlobalStyles): string {
       const btnColor = block.content.buttonTextColor || "#ffffff";
       const href = block.content.href || "#";
       const btnRadius = { square: 0, round: 6, pill: 999 }[block.content.buttonShape || "round"];
-      return wrapContent(`<a href="${href}" style="display:inline-block;background:${btnBg};color:${btnColor};font-weight:600;text-decoration:none;padding:12px 24px;border-radius:${btnRadius}px;font-size:14px;font-family:${globalStyles.fontFamily};">${escapeHtml(block.content.text || "Button")}</a>`);
+      return wrapContent(`<a href="${sanitizeUrl(href)}" style="display:inline-block;background:${btnBg};color:${btnColor};font-weight:600;text-decoration:none;padding:12px 24px;border-radius:${btnRadius}px;font-size:14px;font-family:${globalStyles.fontFamily};">${escapeHtml(block.content.text || "Button")}</a>`);
     }
 
     case "video": {
       const videoHref = block.content.href || block.content.videoUrl || "#";
       const thumb = block.content.videoThumbnail;
       const videoInner = thumb
-        ? `<img src="${thumb}" alt="Video" style="max-width:100%;height:auto;display:block;" />`
+        ? `<img src="${sanitizeUrl(thumb)}" alt="Video" style="max-width:100%;height:auto;display:block;" />`
         : `<div style="width:100%;min-height:200px;background:#000;text-align:center;line-height:200px;border-radius:4px;"><span style="color:#fff;font-size:48px;">&#9654;</span></div>`;
-      return wrapContent(`<a href="${videoHref}" style="text-decoration:none;display:inline-block;width:100%;">${videoInner}</a>`);
+      return wrapContent(`<a href="${sanitizeUrl(videoHref)}" style="text-decoration:none;display:inline-block;width:100%;">${videoInner}</a>`);
     }
 
     case "divider": {
@@ -97,7 +112,7 @@ function renderBlockHtml(block: BlockData, globalStyles: GlobalStyles): string {
     case "social": {
       const links = (block.content.socialLinks || [])
         .filter((l) => l.url)
-        .map((l) => `<a href="${l.url}" style="display:inline-block;margin:0 8px;color:${globalStyles.linkColor};text-decoration:none;font-size:13px;font-family:${globalStyles.fontFamily};">${escapeHtml(l.platform)}</a>`)
+        .map((l) => `<a href="${sanitizeUrl(l.url)}" style="display:inline-block;margin:0 8px;color:${globalStyles.linkColor};text-decoration:none;font-size:13px;font-family:${globalStyles.fontFamily};">${escapeHtml(l.platform)}</a>`)
         .join("");
       return wrapContent(links || "");
     }

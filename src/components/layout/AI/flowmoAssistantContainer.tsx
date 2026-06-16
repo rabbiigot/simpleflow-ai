@@ -12,6 +12,8 @@ import { useAiEvents } from "@/hooks/use-ai-events";
 import {
   chatAi,
   chatWithImage,
+  getAiEnergy,
+  type AiEnergyStatus,
   getCurrentUserId,
   getWorkspacesPaged,
   listAiTools,
@@ -795,6 +797,17 @@ const FlowmoAssistantContainer: React.FC<FlowmoAssistantContainerProps> = ({
 
   const [inputText, setInputText] = useState("");
   const [isSending, setIsSending] = useState(false);
+  const [energy, setEnergy] = useState<AiEnergyStatus | null>(null);
+  const refreshEnergy = useCallback(() => {
+    const uid = getCurrentUserId();
+    if (!uid) return;
+    getAiEnergy(uid)
+      .then(setEnergy)
+      .catch(() => setEnergy(null));
+  }, []);
+  useEffect(() => {
+    refreshEnergy();
+  }, [refreshEnergy]);
   const [, setTools] = useState<ToolDefinition[]>([]);
   const [showEmoji, setShowEmoji] = useState(false);
   const [showSlashMenu, setShowSlashMenu] = useState(false);
@@ -1574,6 +1587,7 @@ const FlowmoAssistantContainer: React.FC<FlowmoAssistantContainerProps> = ({
       ]);
     } finally {
       setIsSending(false);
+      refreshEnergy();
     }
   };
 
@@ -2878,6 +2892,19 @@ const FlowmoAssistantContainer: React.FC<FlowmoAssistantContainerProps> = ({
                   <PenSquare className="h-3 w-3" />
                   <span>New Chat</span>
                 </button>
+                {energy && !energy.unlimited && (
+                  <span
+                    className={cn(
+                      "ml-auto inline-flex items-center gap-1 rounded-full border border-border px-2 py-1 text-[11px] font-medium",
+                      energy.remaining <= 0
+                        ? "text-red-500 dark:text-red-400"
+                        : "text-amber-600 dark:text-amber-400",
+                    )}
+                    title={`Flowmo energy: ${energy.remaining}/${energy.limit} left today · ${energy.costPerPrompt} per action`}
+                  >
+                    ⚡ {energy.remaining}/{energy.limit}
+                  </span>
+                )}
                 </div>
               </div>
             </>

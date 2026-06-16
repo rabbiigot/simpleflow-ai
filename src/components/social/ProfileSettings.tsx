@@ -24,10 +24,31 @@ import {
   syncGoogleCalendar,
   updateUserProfile,
   uploadProfileImage,
+  listMyOrganizations,
+  createOrganization,
+  updateOrganization,
+  listOrgMembers,
+  addOrgMember,
+  removeOrgMember,
+  getOrgUsage,
+  getSubscription,
+  cancelSubscription,
+  getTrelloStatus,
+  getTrelloAuthUrl,
+  connectTrello,
+  disconnectTrello,
+  listTrelloBoards,
+  importTrelloBoard,
+  type TrelloStatus,
+  type TrelloBoardItem,
   type GitHubRepoItem,
   type GitHubStatus,
   type GoogleCalendarStatus,
   type UserProfile,
+  type OrganizationData,
+  type OrgMember,
+  type OrgUsage,
+  type SubscriptionData,
 } from "@/lib/backend-api";
 import { getStoredTheme, setTheme, type AppTheme } from "@/lib/theme";
 import { PROFILE_STORAGE_KEY, useAuthStore } from "@/store/auth-store";
@@ -50,11 +71,20 @@ import {
   Shield,
   Sun,
   User,
+  Building2,
+  CreditCard,
+  Trash2,
 } from "lucide-react";
 import { type ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
-type SettingsTab = "user-info" | "password" | "general" | "integrations" | "privacy";
+type SettingsTab =
+  | "user-info"
+  | "password"
+  | "general"
+  | "integrations"
+  | "organization"
+  | "privacy";
 
 type NavSection = {
   label: string;
@@ -74,6 +104,16 @@ const NAV_SECTIONS: NavSection[] = [
     items: [
       { id: "general", label: "General", icon: <Settings className="h-4 w-4" /> },
       { id: "integrations", label: "Integrations", icon: <Plug className="h-4 w-4" /> },
+    ],
+  },
+  {
+    label: "Billing",
+    items: [
+      {
+        id: "organization",
+        label: "Organization & Plan",
+        icon: <Building2 className="h-4 w-4" />,
+      },
     ],
   },
   {
@@ -119,6 +159,11 @@ export default function ProfileSettings({ embedded, initialTab }: { embedded?: b
   // Integrations state
   const [githubStatus, setGithubStatus] = useState<GitHubStatus | null>(null);
   const [calendarStatus, setCalendarStatus] = useState<GoogleCalendarStatus | null>(null);
+  const [trelloStatus, setTrelloStatus] = useState<TrelloStatus | null>(null);
+  const [isConnectingTrello, setIsConnectingTrello] = useState(false);
+  const [trelloBoards, setTrelloBoards] = useState<TrelloBoardItem[]>([]);
+  const [isLoadingTrelloBoards, setIsLoadingTrelloBoards] = useState(false);
+  const [importingBoardId, setImportingBoardId] = useState<string | null>(null);
   const [isLoadingIntegrations, setIsLoadingIntegrations] = useState(false);
   const [isSyncingCalendar, setIsSyncingCalendar] = useState(false);
   const [showRepos, setShowRepos] = useState(false);
@@ -126,6 +171,56 @@ export default function ProfileSettings({ embedded, initialTab }: { embedded?: b
   const [isLoadingRepos, setIsLoadingRepos] = useState(false);
   const [togglingRepo, setTogglingRepo] = useState<string | null>(null);
   const [showPatDialog, setShowPatDialog] = useState(false);
+
+  // Organization & billing state
+  const [org, setOrg] = useState<OrganizationData | null>(null);
+  const [orgMembers, setOrgMembers] = useState<OrgMember[]>([]);
+  const [orgUsage, setOrgUsage] = useState<OrgUsage | null>(null);
+  const [subscription, setSubscription] = useState<SubscriptionData | null>(
+    null,
+  );
+  const [isLoadingOrg, setIsLoadingOrg] = useState(false);
+  const [editOrgName, setEditOrgName] = useState("");
+  const [isSavingOrg, setIsSavingOrg] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [isInviting, setIsInviting] = useState(false);
+  const [newOrgName, setNewOrgName] = useState("");
+  const [isCancelingSub, setIsCancelingSub] = useState(false);
+
+  const loadOrgData = useCallback(async () => {
+    if (!currentUserId) return;
+    setIsLoadingOrg(true);
+    try {
+      const orgs = await listMyOrganizations();
+      const primary = orgs[0] || null;
+      setOrg(primary);
+      setEditOrgName(primary?.name || "");
+      if (primary) {
+        const [members, usage, sub] = await Promise.all([
+          listOrgMembers(primary.id).catch(() => [] as OrgMember[]),
+          getOrgUsage(primary.id).catch(() => null),
+          getSubscription(primary.id).catch(() => null),
+        ]);
+        setOrgMembers(members);
+        setOrgUsage(usage);
+        setSubscription(sub);
+      } else {
+        setOrgMembers([]);
+        setOrgUsage(null);
+        setSubscription(null);
+      }
+    } catch {
+      toast.error("Failed to load organization");
+    } finally {
+      setIsLoadingOrg(false);
+    }
+  }, [currentUserId]);
+
+  useEffect(() => {
+    if (activeTab === "organization" || activeTab === "privacy") {
+      loadOrgData();
+    }
+  }, [activeTab, loadOrgData]);
 
   // Image upload
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
@@ -185,13 +280,89 @@ export default function ProfileSettings({ embedded, initialTab }: { embedded?: b
     Promise.all([
       getGitHubStatus(currentUserId).catch(() => ({ connected: false }) as GitHubStatus),
       getGoogleCalendarStatus(currentUserId).catch(() => ({ connected: false }) as GoogleCalendarStatus),
+      getTrelloStatus(currentUserId).catch(() => ({ connected: false }) as TrelloStatus),
     ])
-      .then(([gh, gc]) => {
+      .then(([gh, gc, tr]) => {
         setGithubStatus(gh);
         setCalendarStatus(gc);
+        setTrelloStatus(tr);
       })
       .finally(() => setIsLoadingIntegrations(false));
   }, [activeTab, currentUserId]);
+
+  // Capture the Trello token returned in the URL fragment after authorize.
+  useEffect(() => {
+    if (typeof window === "undefined" || !currentUserId) return;
+    const hash = window.location.hash;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("connectTrello") && hash.includes("token=")) {
+      const token = hash.replace(/^#token=/, "").split("&")[0];
+      if (token) {
+        setIsConnectingTrello(true);
+        connectTrello(currentUserId, token)
+          .then((res) => {
+            setTrelloStatus({
+              connected: true,
+              trelloUsername: res.trelloUsername,
+            });
+            toast.success("Trello connected");
+            window.history.replaceState(
+              null,
+              "",
+              `${window.location.pathname}?tab=integrations`,
+            );
+          })
+          .catch(() => toast.error("Failed to connect Trello"))
+          .finally(() => setIsConnectingTrello(false));
+      }
+    }
+  }, [currentUserId]);
+
+  const handleConnectTrello = async () => {
+    try {
+      const { url } = await getTrelloAuthUrl();
+      window.location.href = url;
+    } catch {
+      toast.error("Failed to start Trello connection");
+    }
+  };
+
+  const handleDisconnectTrello = async () => {
+    if (!currentUserId) return;
+    try {
+      await disconnectTrello(currentUserId);
+      setTrelloStatus({ connected: false });
+      setTrelloBoards([]);
+      toast.success("Trello disconnected");
+    } catch {
+      toast.error("Failed to disconnect Trello");
+    }
+  };
+
+  const handleLoadTrelloBoards = async () => {
+    if (!currentUserId) return;
+    setIsLoadingTrelloBoards(true);
+    try {
+      setTrelloBoards(await listTrelloBoards(currentUserId));
+    } catch {
+      toast.error("Failed to load Trello boards");
+    } finally {
+      setIsLoadingTrelloBoards(false);
+    }
+  };
+
+  const handleImportTrelloBoard = async (boardId: string, name: string) => {
+    if (!currentUserId) return;
+    setImportingBoardId(boardId);
+    try {
+      await importTrelloBoard(currentUserId, boardId);
+      toast.success(`Imported "${name}" into a new workspace`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to import board");
+    } finally {
+      setImportingBoardId(null);
+    }
+  };
 
   const handleConnectGitHub = async () => {
     if (!currentUserId) return;
@@ -378,6 +549,94 @@ export default function ProfileSettings({ embedded, initialTab }: { embedded?: b
     setThemeState(next);
     setTheme(next);
   }, []);
+
+  // ── Organization & billing handlers ──
+  const canManageOrg =
+    org?.myRole === "OWNER" || org?.myRole === "ADMIN";
+
+  const handleSaveOrgName = async () => {
+    if (!org || !editOrgName.trim()) return;
+    setIsSavingOrg(true);
+    try {
+      const updated = await updateOrganization(org.id, {
+        name: editOrgName.trim(),
+      });
+      setOrg((prev) => (prev ? { ...prev, name: updated.name } : prev));
+      toast.success("Organization updated");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to update");
+    } finally {
+      setIsSavingOrg(false);
+    }
+  };
+
+  const handleCreateOrg = async () => {
+    if (!newOrgName.trim()) return;
+    setIsSavingOrg(true);
+    try {
+      const slug = newOrgName
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+      await createOrganization({ name: newOrgName.trim(), slug });
+      toast.success("Organization created");
+      setNewOrgName("");
+      await loadOrgData();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to create");
+    } finally {
+      setIsSavingOrg(false);
+    }
+  };
+
+  const handleInviteMember = async () => {
+    if (!org || !inviteEmail.trim()) return;
+    setIsInviting(true);
+    try {
+      await addOrgMember(org.id, inviteEmail.trim());
+      toast.success(`Invited ${inviteEmail.trim()}`);
+      setInviteEmail("");
+      await loadOrgData();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to invite");
+    } finally {
+      setIsInviting(false);
+    }
+  };
+
+  const handleRemoveMember = async (memberId: number) => {
+    if (!org) return;
+    try {
+      await removeOrgMember(org.id, memberId);
+      toast.success("Member removed");
+      await loadOrgData();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to remove");
+    }
+  };
+
+  const handleCancelSubscription = async () => {
+    if (!org) return;
+    if (
+      !window.confirm(
+        "Cancel your subscription? Your organization will be moved to the Free plan.",
+      )
+    )
+      return;
+    setIsCancelingSub(true);
+    try {
+      await cancelSubscription(org.id, true);
+      toast.success("Subscription canceled — moved to Free plan");
+      await loadOrgData();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to cancel");
+    } finally {
+      setIsCancelingSub(false);
+    }
+  };
+
+  const fmtLimit = (n: number) => (n < 0 ? "∞" : String(n));
 
   if (isLoadingProfile && !embedded) {
     return (
@@ -960,6 +1219,91 @@ export default function ProfileSettings({ embedded, initialTab }: { embedded?: b
                 </CardContent>
               </Card>
 
+              {/* Trello */}
+              <Card className="rounded-md shadow-sm">
+                <CardContent className="space-y-4 pt-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#0079bf] text-sm font-bold text-white">
+                        T
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-foreground">Trello</p>
+                        <p className="text-xs text-muted-foreground">
+                          {trelloStatus?.connected
+                            ? `Connected as @${trelloStatus.trelloUsername}`
+                            : "Import your Trello boards as workspaces"}
+                        </p>
+                      </div>
+                    </div>
+                    {trelloStatus?.connected ? (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleDisconnectTrello}
+                      >
+                        Disconnect
+                      </Button>
+                    ) : (
+                      <Button
+                        size="sm"
+                        onClick={handleConnectTrello}
+                        className="gap-1.5"
+                      >
+                        <Link2 className="h-3.5 w-3.5" />
+                        Connect
+                      </Button>
+                    )}
+                  </div>
+
+                  {isConnectingTrello && !trelloStatus?.connected && (
+                    <div className="flex items-center gap-2 rounded-lg border p-3 text-sm text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Connecting to Trello…
+                    </div>
+                  )}
+
+                  {trelloStatus?.connected && (
+                    <div className="rounded-lg border p-3">
+                      <div className="mb-2 flex items-center justify-between">
+                        <p className="text-sm font-medium">Import a board</p>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={handleLoadTrelloBoards}
+                          disabled={isLoadingTrelloBoards}
+                        >
+                          {isLoadingTrelloBoards && (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          )}
+                          {trelloBoards.length ? "Refresh" : "Load boards"}
+                        </Button>
+                      </div>
+                      <div className="space-y-2">
+                        {trelloBoards.map((b) => (
+                          <div
+                            key={b.id}
+                            className="flex items-center justify-between rounded-lg border p-2"
+                          >
+                            <span className="text-sm">{b.name}</span>
+                            <Button
+                              size="sm"
+                              onClick={() => handleImportTrelloBoard(b.id, b.name)}
+                              disabled={importingBoardId === b.id}
+                            >
+                              {importingBoardId === b.id && (
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              )}
+                              Import
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
               <Card className="rounded-md shadow-sm">
                 <CardContent className="space-y-3 pt-6">
                   <div>
@@ -983,6 +1327,178 @@ export default function ProfileSettings({ embedded, initialTab }: { embedded?: b
                   onOpenChange={setShowPatDialog}
                   userId={currentUserId}
                 />
+              )}
+            </div>
+          )}
+
+          {/* Organization & Plan Tab */}
+          {activeTab === "organization" && (
+            <div className="space-y-6">
+              {isLoadingOrg ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : !org ? (
+                <Card className="rounded-md shadow-sm">
+                  <CardContent className="space-y-4 pt-6">
+                    <div className="flex items-center gap-2">
+                      <Building2 className="h-5 w-5 text-primary" />
+                      <h3 className="text-lg font-semibold">No organization yet</h3>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Your email <span className="font-medium">{profileData?.email}</span>{" "}
+                      is being used as a temporary label. Create an organization to
+                      invite teammates and manage your plan.
+                    </p>
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Organization name"
+                        value={newOrgName}
+                        onChange={(e) => setNewOrgName(e.target.value)}
+                      />
+                      <Button onClick={handleCreateOrg} disabled={isSavingOrg}>
+                        {isSavingOrg && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Create
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                <>
+                  {/* Organization info */}
+                  <Card className="rounded-md shadow-sm">
+                    <CardContent className="space-y-4 pt-6">
+                      <div className="flex items-center gap-2">
+                        <Building2 className="h-5 w-5 text-primary" />
+                        <h3 className="text-lg font-semibold">Organization</h3>
+                      </div>
+                      <div>
+                        <Label className="mb-1">Name</Label>
+                        <div className="flex gap-2">
+                          <Input
+                            value={editOrgName}
+                            onChange={(e) => setEditOrgName(e.target.value)}
+                            disabled={!canManageOrg}
+                          />
+                          {canManageOrg && (
+                            <Button
+                              onClick={handleSaveOrgName}
+                              disabled={isSavingOrg || editOrgName === org.name}
+                            >
+                              {isSavingOrg && (
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              )}
+                              Save
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Plan & usage */}
+                  {orgUsage && (
+                    <Card className="rounded-md shadow-sm">
+                      <CardContent className="space-y-4 pt-6">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <CreditCard className="h-5 w-5 text-primary" />
+                            <h3 className="text-lg font-semibold">
+                              {orgUsage.plan.name} plan
+                            </h3>
+                          </div>
+                          {subscription?.cancelAtPeriodEnd && (
+                            <span className="text-xs text-amber-600">
+                              Cancels at period end
+                            </span>
+                          )}
+                        </div>
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          {[
+                            { label: "Members", m: orgUsage.usage.members },
+                            { label: "Org workspaces", m: orgUsage.usage.orgWorkspaces },
+                            {
+                              label: "Personal workspaces",
+                              m: orgUsage.usage.personalWorkspaces,
+                            },
+                            { label: "Automations", m: orgUsage.usage.automations },
+                            ...(orgUsage.plan.emailCampaigns
+                              ? [
+                                  { label: "Email templates", m: orgUsage.usage.emailTemplates },
+                                  { label: "Contact lists", m: orgUsage.usage.contactLists },
+                                  { label: "Sends this month", m: orgUsage.usage.campaignSends },
+                                ]
+                              : []),
+                          ].map(({ label, m }) => (
+                            <div key={label} className="rounded-lg border p-3">
+                              <p className="text-xs text-muted-foreground">{label}</p>
+                              <p className="text-sm font-medium">
+                                {m.used} / {fmtLimit(m.limit)}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Members & invites */}
+                  <Card className="rounded-md shadow-sm">
+                    <CardContent className="space-y-4 pt-6">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-lg font-semibold">Members</h3>
+                        {orgUsage && (
+                          <span className="text-xs text-muted-foreground">
+                            {orgUsage.usage.members.used} /{" "}
+                            {fmtLimit(orgUsage.usage.members.limit)} seats
+                          </span>
+                        )}
+                      </div>
+                      {canManageOrg && (
+                        <div className="flex gap-2">
+                          <Input
+                            type="email"
+                            placeholder="teammate@example.com"
+                            value={inviteEmail}
+                            onChange={(e) => setInviteEmail(e.target.value)}
+                          />
+                          <Button onClick={handleInviteMember} disabled={isInviting}>
+                            {isInviting && (
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            )}
+                            Invite
+                          </Button>
+                        </div>
+                      )}
+                      <div className="space-y-2">
+                        {orgMembers.map((m) => (
+                          <div
+                            key={m.id}
+                            className="flex items-center justify-between rounded-lg border p-3"
+                          >
+                            <div>
+                              <p className="text-sm font-medium">
+                                {m.user.firstName} {m.user.lastName}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {m.user.email} · {m.role}
+                              </p>
+                            </div>
+                            {canManageOrg && m.role !== "OWNER" && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleRemoveMember(m.userId)}
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </>
               )}
             </div>
           )}
@@ -1031,6 +1547,37 @@ export default function ProfileSettings({ embedded, initialTab }: { embedded?: b
                     <h3 className="text-base font-semibold text-foreground">Account</h3>
                     <p className="text-sm text-muted-foreground">Manage your account settings.</p>
                   </div>
+
+                  {org &&
+                    canManageOrg &&
+                    orgUsage &&
+                    orgUsage.plan.tier !== "FREE" && (
+                      <div className="rounded-lg border border-amber-300/40 p-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-amber-600">
+                              Cancel Subscription
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              Move {org.name} back to the Free plan. Plan limits
+                              will apply immediately.
+                            </p>
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="border-amber-400/40 text-amber-600 hover:bg-amber-50"
+                            onClick={handleCancelSubscription}
+                            disabled={isCancelingSub}
+                          >
+                            {isCancelingSub && (
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            )}
+                            Cancel Subscription
+                          </Button>
+                        </div>
+                      </div>
+                    )}
 
                   <div className="rounded-lg border border-destructive/20 p-4">
                     <div className="flex items-center justify-between">

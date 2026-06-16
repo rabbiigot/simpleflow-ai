@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import DOMPurify from "dompurify";
 import { Trash2, Check, X, Plus, GripVertical, AlignLeft, AlignCenter, AlignRight, Bold, Italic } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -508,7 +509,11 @@ function BlockPreview({ block, globalStyles }: { block: BlockData; globalStyles:
       return (
         <div style={style}>
           {block.content.html ? (
-            <div dangerouslySetInnerHTML={{ __html: block.content.html }} />
+            <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(block.content.html, {
+  ALLOWED_TAGS: ["b", "i", "u", "em", "strong", "a", "p", "br", "span", "div", "h1", "h2", "h3", "ul", "ol", "li", "table", "tr", "td", "th", "img"],
+  ALLOWED_ATTR: ["href", "src", "alt", "style", "class", "width", "height"],
+  ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
+}) }} />
           ) : (
             <div style={{ color: "#999", fontSize: 12, textAlign: "center", padding: 10 }}>
               Empty HTML block — click to edit

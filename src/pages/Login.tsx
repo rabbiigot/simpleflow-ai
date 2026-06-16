@@ -48,6 +48,8 @@ const Login = () => {
       const userStr = params.get("user");
       if (token && userStr) {
         try {
+          // Clear token from URL immediately to prevent logging/caching
+          window.history.replaceState({}, document.title, window.location.pathname);
           const user = JSON.parse(userStr);
           setAuth({ token, user });
           toast.success("Successfully signed in with Google.");

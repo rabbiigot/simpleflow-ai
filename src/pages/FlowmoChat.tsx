@@ -11,6 +11,8 @@ import {
   chatAi,
   chatWithDocument,
   chatWithImage,
+  getAiEnergy,
+  type AiEnergyStatus,
   getCurrentUserId,
   getDashboardOverview,
   getWorkspacesPaged,
@@ -263,6 +265,22 @@ function MarkdownContent({ content }: { content: string }) {
         h3: ({ children }) => <h3 className="text-sm font-semibold mb-1 mt-2">{children}</h3>,
         blockquote: ({ children }) => <blockquote className="border-l-2 border-indigo-400 pl-3 my-2 text-muted-foreground italic">{children}</blockquote>,
         hr: () => <hr className="my-3 border-border" />,
+        a: ({ href, children, ...props }) => {
+          if (href && /^(javascript|data|vbscript):/i.test(href)) {
+            return <span>{children}</span>;
+          }
+          return (
+            <a
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-indigo-500 hover:underline"
+              {...props}
+            >
+              {children}
+            </a>
+          );
+        },
       }}
     >
       {content}
@@ -363,6 +381,19 @@ const FlowmoChat = () => {
   // Listen for GitHub PR events (needed when panel is not mounted on /flowmo page)
   const currentUserId = getCurrentUserId();
   const { addListener: addNotifListener } = useNotificationSocket(currentUserId);
+
+  // Flowmo daily energy (Free plan); null/unlimited = no badge shown
+  const [energy, setEnergy] = useState<AiEnergyStatus | null>(null);
+  const refreshEnergy = useCallback(() => {
+    if (!currentUserId) return;
+    getAiEnergy(currentUserId)
+      .then(setEnergy)
+      .catch(() => setEnergy(null));
+  }, [currentUserId]);
+  useEffect(() => {
+    refreshEnergy();
+  }, [refreshEnergy]);
+
 
   useEffect(() => {
     return addNotifListener((event: NotificationSocketEvent) => {
@@ -609,7 +640,7 @@ const FlowmoChat = () => {
         setMessages((prev) => [...prev, { id: `assistant-${Date.now()}`, role: "assistant", type: "response", response: result, createdAt: Date.now() }]);
       } catch (error) {
         setMessages((prev) => [...prev, { id: `assistant-error-${Date.now()}`, role: "assistant", type: "error", text: error instanceof Error ? error.message : "Failed to execute AI chat orchestration.", createdAt: Date.now() }]);
-      } finally { setIsSending(false); }
+      } finally { setIsSending(false); refreshEnergy(); }
     },
     [isSending, pendingConfirmationId, pendingImagePreview, pendingFiles, saveConfirmationId, saveSessionId, selectedWorkspace, sessionId, setMessages, clearFiles],
   );
@@ -777,6 +808,25 @@ const FlowmoChat = () => {
             <span className={`inline-block h-2 w-2 rounded-full ${isConnected ? "bg-emerald-400" : "bg-red-400"}`} />
             {isConnected ? "Active" : "Offline"}
           </span>
+          {energy && !energy.unlimited && (
+            <span
+              className="inline-flex items-center gap-1.5 rounded-full border border-border px-2 py-0.5"
+              title={`Flowmo energy: ${energy.remaining}/${energy.limit} left today · ${energy.costPerPrompt} per action`}
+            >
+              <span className="text-[10px]">⚡</span>
+              <span className="h-1.5 w-16 overflow-hidden rounded-full bg-muted">
+                <span
+                  className={`block h-full rounded-full transition-all ${energy.remaining <= 0 ? "bg-red-400" : energy.remaining <= energy.costPerPrompt ? "bg-orange-400" : "bg-amber-400"}`}
+                  style={{
+                    width: `${energy.limit > 0 ? Math.max(0, Math.min(100, (energy.remaining / energy.limit) * 100)) : 0}%`,
+                  }}
+                />
+              </span>
+              <span className="text-[10px] font-medium text-muted-foreground">
+                {energy.remaining}/{energy.limit}
+              </span>
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-1">
           <span className="hidden sm:inline text-[10px] text-muted-foreground/50 mr-2">⌘K new · ⌘/ focus · ⌘⇧S history</span>
