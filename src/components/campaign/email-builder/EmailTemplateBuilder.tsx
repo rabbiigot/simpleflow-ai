@@ -704,7 +704,7 @@ export default function EmailTemplateBuilder({
             <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(previewHtml, {
   ALLOWED_TAGS: ["div", "p", "span", "a", "img", "h1", "h2", "h3", "h4", "h5", "h6", "b", "i", "u", "em", "strong", "br", "table", "tr", "td", "th", "hr", "thead", "tbody"],
   ALLOWED_ATTR: ["href", "src", "alt", "style", "class", "width", "height", "cellpadding", "cellspacing", "border", "align"],
-  ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
+  ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto):|[^a-z]|[a-z+.-]+(?:[^a-z+.:-]|$))/i,
 }) }} />
           </div>
 

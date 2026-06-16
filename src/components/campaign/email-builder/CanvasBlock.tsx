@@ -512,7 +512,7 @@ function BlockPreview({ block, globalStyles }: { block: BlockData; globalStyles:
             <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(block.content.html, {
   ALLOWED_TAGS: ["b", "i", "u", "em", "strong", "a", "p", "br", "span", "div", "h1", "h2", "h3", "ul", "ol", "li", "table", "tr", "td", "th", "img"],
   ALLOWED_ATTR: ["href", "src", "alt", "style", "class", "width", "height"],
-  ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
+  ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto):|[^a-z]|[a-z+.-]+(?:[^a-z+.:-]|$))/i,
 }) }} />
           ) : (
             <div style={{ color: "#999", fontSize: 12, textAlign: "center", padding: 10 }}>
