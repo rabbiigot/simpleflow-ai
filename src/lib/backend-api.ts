@@ -197,6 +197,8 @@ export type Workspace = {
   status?: string;
   githubEnabled?: boolean;
   calendarEnabled?: boolean;
+  trelloEnabled?: boolean;
+  trelloBoardId?: string | null;
   createdAt?: string;
   columns?: Array<{
     id: string;
@@ -1029,6 +1031,23 @@ export async function toggleWorkspaceCalendar(workspaceId: string, enabled: bool
   });
 }
 
+export async function toggleWorkspaceTrello(workspaceId: string, enabled: boolean) {
+  return apiRequest<Workspace>(`/workspace/${workspaceId}`, {
+    method: "PUT",
+    body: JSON.stringify({ trelloEnabled: enabled }),
+  });
+}
+
+export async function setWorkspaceTrelloBoard(
+  workspaceId: string,
+  trelloBoardId: string | null,
+) {
+  return apiRequest<Workspace>(`/workspace/${workspaceId}`, {
+    method: "PUT",
+    body: JSON.stringify({ trelloBoardId }),
+  });
+}
+
 export async function createWorkspaceTask(
   workspaceId: string,
   payload: {
@@ -1603,6 +1622,13 @@ export interface TrelloBoardItem {
   description?: string;
 }
 
+export interface TrelloCardItem {
+  id: string;
+  name: string;
+  description: string;
+  listName: string;
+}
+
 export async function getTrelloAuthUrl() {
   return apiRequest<{ url: string }>(`/integrations/trello/auth`);
 }
@@ -1637,6 +1663,12 @@ export async function importTrelloBoard(userId: string, boardId: string) {
   return apiRequest<{ id: number; name: string }>(
     `/integrations/trello/boards/${boardId}/import?userId=${userId}`,
     { method: "POST" },
+  );
+}
+
+export async function listTrelloCards(userId: string, boardId: string) {
+  return apiRequest<TrelloCardItem[]>(
+    `/integrations/trello/boards/${boardId}/cards?userId=${userId}`,
   );
 }
 

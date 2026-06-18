@@ -1,5 +1,6 @@
 import githubIcon from "@/assets/github.svg";
 import googleIcon from "@/assets/google.png";
+import trelloIcon from "@/assets/trello.svg";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -42,6 +43,7 @@ import {
   setNotificationPreference,
   toggleWorkspaceCalendar,
   toggleWorkspaceGitHub,
+  toggleWorkspaceTrello,
   updateWorkspace,
   updateWorkspaceColumn,
   updateWorkspaceTask,
@@ -297,6 +299,18 @@ export default function WorkspaceProjects() {
       toast.success(newVal ? "Google Calendar enabled" : "Google Calendar disabled");
     } catch {
       toast.error("Failed to toggle Google Calendar");
+    }
+  }, [workspaceId, workspace]);
+
+  const handleToggleTrello = useCallback(async () => {
+    if (!workspaceId || !workspace) return;
+    const newVal = !workspace.trelloEnabled;
+    try {
+      await toggleWorkspaceTrello(workspaceId, newVal);
+      await loadWorkspace(true);
+      toast.success(newVal ? "Trello integration enabled" : "Trello integration disabled");
+    } catch {
+      toast.error("Failed to toggle Trello integration");
     }
   }, [workspaceId, workspace]);
 
@@ -1582,6 +1596,25 @@ export default function WorkspaceProjects() {
                             {workspace.calendarEnabled ? "Enabled" : "Disabled"}
                           </span>
                         </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (isOwner) {
+                              void handleToggleTrello();
+                              setShowWorkspaceMenu(false);
+                            } else {
+                              setShowWorkspaceMenu(false);
+                              setShowGitHubOwnerModal(true);
+                            }
+                          }}
+                          className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors cursor-pointer"
+                        >
+                          <img src={trelloIcon} alt="" className={`h-4 w-4 ${workspace.trelloEnabled ? "dark:invert" : "opacity-40 dark:invert"}`} />
+                          <span>Trello Integration</span>
+                          <span className={`ml-auto text-[10px] font-medium ${workspace.trelloEnabled ? "text-green-600" : "text-muted-foreground"}`}>
+                            {workspace.trelloEnabled ? "Enabled" : "Disabled"}
+                          </span>
+                        </button>
                       </>
                     );
                   })()}
@@ -1865,6 +1898,8 @@ export default function WorkspaceProjects() {
         members={members}
         editorSnapshot={editorSnapshot}
         githubEnabled={workspace?.githubEnabled || false}
+        trelloEnabled={workspace?.trelloEnabled || false}
+        trelloBoardId={workspace?.trelloBoardId ?? null}
       />
 
       {/* GitHub Owner-Only Modal */}

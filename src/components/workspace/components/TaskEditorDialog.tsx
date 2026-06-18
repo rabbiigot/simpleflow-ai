@@ -39,7 +39,9 @@ import {
   uploadTaskAttachment,
 } from "@/lib/backend-api";
 import githubIcon from "@/assets/github.svg";
+import trelloIcon from "@/assets/trello.svg";
 import GitHubPRPicker from "./GitHubPRPicker";
+import TrelloCardPicker from "./TrelloCardPicker";
 import {
   Activity,
   Bot,
@@ -753,12 +755,19 @@ export function postTaskActivity(
 function InlineTitleDescription({
   editor,
   setEditor,
+  trelloEnabled = false,
+  trelloBoardId = null,
+  currentUserId,
 }: {
   editor: TaskEditorState;
   setEditor: React.Dispatch<React.SetStateAction<TaskEditorState | null>>;
+  trelloEnabled?: boolean;
+  trelloBoardId?: string | null;
+  currentUserId?: string;
 }) {
   const [editingTitle, setEditingTitle] = useState(editor.mode === "create");
   const [editingDesc, setEditingDesc] = useState(false);
+  const [showTrelloPicker, setShowTrelloPicker] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -776,6 +785,44 @@ function InlineTitleDescription({
 
   return (
     <div className="space-y-1">
+      {/* Replicate from a Trello card — only on create when the workspace has
+          Trello enabled. Prefills title + description from the selected card. */}
+      {editor.mode === "create" && trelloEnabled && currentUserId && (
+        <div className="relative flex justify-end">
+          <button
+            type="button"
+            onClick={() => setShowTrelloPicker((v) => !v)}
+            className={`flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-medium transition-colors cursor-pointer ${
+              showTrelloPicker
+                ? "bg-muted text-foreground"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted"
+            }`}
+            title="Replicate a Trello card"
+          >
+            <img src={trelloIcon} alt="" className="h-3.5 w-3.5 dark:invert" />
+            Replicate from Trello
+          </button>
+          {showTrelloPicker && (
+            <TrelloCardPicker
+              userId={currentUserId}
+              boardId={trelloBoardId}
+              onClose={() => setShowTrelloPicker(false)}
+              onSelect={(card) => {
+                setEditor((prev) =>
+                  prev
+                    ? {
+                        ...prev,
+                        title: card.name,
+                        description: card.description || prev.description,
+                      }
+                    : prev,
+                );
+                setShowTrelloPicker(false);
+              }}
+            />
+          )}
+        </div>
+      )}
       {/* Title */}
       <Label className="text-muted-foreground text-xs">Title</Label>
       {editingTitle || editor.mode === "create" ? (
@@ -851,6 +898,8 @@ export interface TaskEditorDialogProps {
   /** Snapshot of the editor when it was first opened, for dirty detection */
   editorSnapshot?: TaskEditorState | null;
   githubEnabled?: boolean;
+  trelloEnabled?: boolean;
+  trelloBoardId?: string | null;
 }
 
 export function TaskEditorDialog({
@@ -869,6 +918,8 @@ export function TaskEditorDialog({
   members = [],
   editorSnapshot,
   githubEnabled = false,
+  trelloEnabled = false,
+  trelloBoardId = null,
 }: TaskEditorDialogProps) {
   const bucketColor = editor
     ? columnColors[editor.columnId] || "#94a3b8"
@@ -1086,6 +1137,9 @@ export function TaskEditorDialog({
                   <InlineTitleDescription
                     editor={editor}
                     setEditor={setEditor}
+                    trelloEnabled={trelloEnabled}
+                    trelloBoardId={trelloBoardId}
+                    currentUserId={currentUserId}
                   />
 
                   {/* Priority */}

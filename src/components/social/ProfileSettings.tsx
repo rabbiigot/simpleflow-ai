@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textArea";
 import GitHubPatDialog from "@/components/social/GitHubPatDialog";
 import githubIcon from "@/assets/github.svg";
 import googleIcon from "@/assets/google.png";
+import trelloIcon from "@/assets/trello.svg";
 import {
   changePassword,
   disconnectGitHub,
@@ -1238,8 +1239,12 @@ export default function ProfileSettings({ embedded, initialTab }: { embedded?: b
                 <CardContent className="space-y-4 pt-6">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#0079bf] text-sm font-bold text-white">
-                        T
+                      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#0079bf]">
+                        <img
+                          src={trelloIcon}
+                          alt="Trello"
+                          className="h-5 w-5 invert"
+                        />
                       </div>
                       <div>
                         <p className="text-sm font-medium text-foreground">Trello</p>
