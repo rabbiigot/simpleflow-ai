@@ -276,6 +276,14 @@ export default function ProfileSettings({ embedded, initialTab }: { embedded?: b
   // Load integration statuses when tab is active
   useEffect(() => {
     if (activeTab !== "integrations" || !currentUserId) return;
+    // If we just returned from Trello authorize, the token-capture effect below
+    // is about to POST /connect. This status GET is sent before the token is
+    // stored, so it would return connected:false and race-clobber the
+    // post-connect state. Skip applying its Trello result in that case.
+    const pendingTrelloConnect =
+      typeof window !== "undefined" &&
+      !!new URLSearchParams(window.location.search).get("connectTrello") &&
+      window.location.hash.includes("token=");
     setIsLoadingIntegrations(true);
     Promise.all([
       getGitHubStatus(currentUserId).catch(() => ({ connected: false }) as GitHubStatus),
@@ -285,7 +293,7 @@ export default function ProfileSettings({ embedded, initialTab }: { embedded?: b
       .then(([gh, gc, tr]) => {
         setGithubStatus(gh);
         setCalendarStatus(gc);
-        setTrelloStatus(tr);
+        if (!pendingTrelloConnect) setTrelloStatus(tr);
       })
       .finally(() => setIsLoadingIntegrations(false));
   }, [activeTab, currentUserId]);
@@ -300,7 +308,7 @@ export default function ProfileSettings({ embedded, initialTab }: { embedded?: b
       if (token) {
         setIsConnectingTrello(true);
         connectTrello(currentUserId, token)
-          .then((res) => {
+          .then(async (res) => {
             setTrelloStatus({
               connected: true,
               trelloUsername: res.trelloUsername,
@@ -311,6 +319,12 @@ export default function ProfileSettings({ embedded, initialTab }: { embedded?: b
               "",
               `${window.location.pathname}?tab=integrations`,
             );
+            // Re-sync from the server so the card reflects authoritative status.
+            try {
+              setTrelloStatus(await getTrelloStatus(currentUserId));
+            } catch {
+              /* keep optimistic connected state */
+            }
           })
           .catch(() => toast.error("Failed to connect Trello"))
           .finally(() => setIsConnectingTrello(false));
