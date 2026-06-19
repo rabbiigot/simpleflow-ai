@@ -1,3 +1,6 @@
+// MUST be the first import: captures the Trello return token from the URL
+// fragment before the router initializes and strips it.
+import "./lib/trello-return.ts";
 import { RouterProvider } from "@tanstack/react-router";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";

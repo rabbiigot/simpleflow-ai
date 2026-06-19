@@ -299,38 +299,60 @@ export default function ProfileSettings({ embedded, initialTab }: { embedded?: b
       .finally(() => setIsLoadingIntegrations(false));
   }, [activeTab, currentUserId]);
 
-  // Capture the Trello token returned in the URL fragment after authorize.
+  // Complete the Trello connection after returning from authorize. The token
+  // was captured at app boot (src/lib/trello-return.ts) into sessionStorage,
+  // because the router strips the URL fragment before this component renders.
+  // We still fall back to the live hash/query in case it survived.
+  const trelloConnectHandledRef = useRef(false);
   useEffect(() => {
     if (typeof window === "undefined" || !currentUserId) return;
-    const hash = window.location.hash;
+    if (trelloConnectHandledRef.current) return;
     const params = new URLSearchParams(window.location.search);
-    if (params.get("connectTrello") && hash.includes("token=")) {
-      const token = hash.replace(/^#token=/, "").split("&")[0];
-      if (token) {
-        setIsConnectingTrello(true);
-        connectTrello(currentUserId, token)
-          .then(async (res) => {
-            setTrelloStatus({
-              connected: true,
-              trelloUsername: res.trelloUsername,
-            });
-            toast.success("Trello connected");
-            window.history.replaceState(
-              null,
-              "",
-              `${window.location.pathname}?tab=integrations`,
-            );
-            // Re-sync from the server so the card reflects authoritative status.
-            try {
-              setTrelloStatus(await getTrelloStatus(currentUserId));
-            } catch {
-              /* keep optimistic connected state */
-            }
-          })
-          .catch(() => toast.error("Failed to connect Trello"))
-          .finally(() => setIsConnectingTrello(false));
-      }
+    if (!params.get("connectTrello")) return;
+
+    const hashMatch = window.location.hash.match(/token=([^&]+)/);
+    const token =
+      sessionStorage.getItem("trelloReturnToken") ||
+      (hashMatch ? decodeURIComponent(hashMatch[1]) : params.get("token"));
+
+    // Mark handled + clear the stashed token so React StrictMode / re-renders
+    // don't double-submit.
+    trelloConnectHandledRef.current = true;
+    sessionStorage.removeItem("trelloReturnToken");
+
+    const cleanUrl = () =>
+      window.history.replaceState(
+        null,
+        "",
+        `${window.location.pathname}?tab=integrations`,
+      );
+
+    if (!token) {
+      toast.error(
+        "Trello didn't return an access token. Please try connecting again.",
+      );
+      cleanUrl();
+      return;
     }
+
+    setIsConnectingTrello(true);
+    connectTrello(currentUserId, token)
+      .then(async (res) => {
+        setTrelloStatus({
+          connected: true,
+          trelloUsername: res.trelloUsername,
+        });
+        toast.success("Trello connected");
+        cleanUrl();
+        // Re-sync from the server so the card reflects authoritative status.
+        try {
+          setTrelloStatus(await getTrelloStatus(currentUserId));
+        } catch {
+          /* keep optimistic connected state */
+        }
+      })
+      .catch(() => toast.error("Failed to connect Trello"))
+      .finally(() => setIsConnectingTrello(false));
   }, [currentUserId]);
 
   const handleConnectTrello = async () => {
