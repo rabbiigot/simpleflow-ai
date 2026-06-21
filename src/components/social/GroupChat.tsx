@@ -2,6 +2,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { useKeyboardInset } from "@/hooks/use-keyboard-inset";
 import {
   Dialog,
   DialogContent,
@@ -53,6 +54,8 @@ type Props = {
   currentUserInitials: string;
   onBack: () => void;
   boardId?: number;
+  /** When true, fill the parent's height (h-full) instead of using a self-contained viewport height. */
+  fillParent?: boolean;
 };
 
 function initials(firstName: string, lastName: string) {
@@ -67,7 +70,15 @@ export default function GroupChat({
   currentUserInitials,
   onBack,
   boardId,
+  fillParent = false,
 }: Props) {
+  // On mobile, lift the whole chat above the on-screen keyboard (keeping its
+  // height) so the conversation stays visible and the input isn't covered.
+  // The chat container already sits ~72px above the screen bottom (bottom nav),
+  // so we only lift by the remaining amount.
+  const keyboardInset = useKeyboardInset();
+  const lift = fillParent && keyboardInset > 0 ? Math.max(0, keyboardInset - 72) : 0;
+  const liftStyle = lift > 0 ? { transform: `translateY(-${lift}px)` } : undefined;
   const [messages, setMessages] = useState<ChatMessageData[]>([]);
   const [draft, setDraft] = useState("");
   const [isLoading, setIsLoading] = useState(true);
@@ -271,9 +282,16 @@ export default function GroupChat({
   const { Icon: ChannelIcon } = getChannelIcon(channel.icon ?? "hash");
 
   return (
-    <Card className="flex h-[calc(100vh-14rem)] flex-col gap-0 overflow-hidden py-0">
+    <Card
+      style={liftStyle}
+      className={`flex flex-col gap-0 overflow-hidden py-0 transition-transform duration-200 ${
+        fillParent
+          ? "h-full"
+          : "h-[calc(100dvh-15rem-env(safe-area-inset-bottom))] md:h-[calc(100vh-14rem)]"
+      }`}
+    >
       {/* ---- Header ---- */}
-      <div className="flex items-center gap-3 border-b px-4 py-3">
+      <div className="flex items-center gap-2 border-b px-3 py-3 md:gap-3 md:px-4">
         <Button
           variant="ghost"
           size="sm"
@@ -335,7 +353,7 @@ export default function GroupChat({
       {/* ---- Messages ---- */}
       <div className="min-h-0 flex-1">
         <ScrollArea className="h-full">
-          <div className="space-y-3 p-4">
+          <div className="space-y-3 p-3 md:p-4">
             {isLoading ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -589,7 +607,7 @@ export default function GroupChat({
 
                     {/* Message content */}
                     <div
-                      className={`max-w-[65%] flex flex-col ${isMe ? "items-end" : "items-start"}`}
+                      className={`max-w-[82%] md:max-w-[65%] flex flex-col ${isMe ? "items-end" : "items-start"}`}
                     >
                       {/* Message bubble with reply behind */}
                       <div className="relative">
@@ -745,7 +763,7 @@ export default function GroupChat({
       </div>
 
       {/* ---- Input ---- */}
-      <div className="border-t px-4 py-3">
+      <div className="shrink-0 border-t px-3 py-3 md:px-4">
         {replyTo && (
           <div className="mb-2 flex items-center gap-2 rounded-lg bg-muted/50 px-3 py-2">
             <div className="flex-1 min-w-0">
@@ -856,7 +874,7 @@ export default function GroupChat({
 
       {/* ---- Members Dialog ---- */}
       <Dialog open={showMembers} onOpenChange={setShowMembers}>
-        <DialogContent className="sm:max-w-sm">
+        <DialogContent className="w-[95vw] max-w-sm max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Members ({channel.members.length})</DialogTitle>
             <DialogDescription>People in this channel</DialogDescription>
@@ -909,7 +927,7 @@ export default function GroupChat({
 
       {/* ---- Invite Dialog ---- */}
       <Dialog open={showInvite} onOpenChange={setShowInvite}>
-        <DialogContent className="sm:max-w-sm">
+        <DialogContent className="w-[95vw] max-w-sm">
           <DialogHeader>
             <DialogTitle>Invite to #{channel.name}</DialogTitle>
             <DialogDescription>

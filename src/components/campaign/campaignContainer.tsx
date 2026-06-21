@@ -112,13 +112,13 @@ export default function CampaignContainer() {
     <div className="page-shell">
       <div className="section-stack">
         <p className="section-label">Email Campaign</p>
-        <h1 className="text-3xl font-bold mb-2">Campaign</h1>
+        <h1 className="text-2xl md:text-3xl font-bold mb-2">Campaign</h1>
         <p className="text-muted-foreground text-sm mb-6">
           Create and manage email campaigns, contacts, and templates.
         </p>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList data-tour="campaign-tabs">
+          <TabsList data-tour="campaign-tabs" className="max-w-full overflow-x-auto justify-start">
             <TabsTrigger value="campaigns">
               <Mail className="w-4 h-4 mr-1.5 text-indigo-700 dark:text-blue-400" />
               Campaigns
@@ -251,7 +251,7 @@ function CampaignsTab({ onSwitchToTemplates }: { onSwitchToTemplates: () => void
         </Card>
       ) : (
         <>
-          <div className="rounded-md border">
+          <div className="rounded-md border overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -365,6 +365,7 @@ function CampaignsTab({ onSwitchToTemplates }: { onSwitchToTemplates: () => void
             <DialogHeader>
               <DialogTitle>Recipients</DialogTitle>
             </DialogHeader>
+            <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -393,6 +394,7 @@ function CampaignsTab({ onSwitchToTemplates }: { onSwitchToTemplates: () => void
                 ))}
               </TableBody>
             </Table>
+            </div>
           </DialogContent>
         </Dialog>
       )}
@@ -487,7 +489,7 @@ function CreateCampaignDialog({
             <Label>Campaign Name *</Label>
             <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Monthly Newsletter" />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Label>From Name *</Label>
               <Input value={fromName} onChange={(e) => setFromName(e.target.value)} placeholder="Your Company" />
@@ -606,8 +608,8 @@ function ContactsTab() {
 
   return (
     <div className="space-y-4 mt-4">
-      <div className="flex justify-between items-center gap-4">
-        <div className="relative flex-1 max-w-sm">
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-3 md:gap-4">
+        <div className="relative flex-1 md:max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
             className="pl-9"
@@ -617,8 +619,8 @@ function ContactsTab() {
           />
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setShowImport(true)}>Import CSV</Button>
-          <Button onClick={() => setShowCreate(true)}>
+          <Button variant="outline" className="flex-1 md:flex-none" onClick={() => setShowImport(true)}>Import CSV</Button>
+          <Button className="flex-1 md:flex-none" onClick={() => setShowCreate(true)}>
             <Plus className="w-4 h-4" />
             Add Contact
           </Button>
@@ -634,6 +636,7 @@ function ContactsTab() {
         </Card>
       ) : (
         <>
+          <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -672,6 +675,7 @@ function ContactsTab() {
               ))}
             </TableBody>
           </Table>
+          </div>
 
           {totalPages > 1 && (
             <div className="flex justify-center gap-2">
@@ -725,7 +729,7 @@ function CreateContactDialog({ open, onClose, onCreated }: { open: boolean; onCl
         <DialogHeader><DialogTitle>Add Contact</DialogTitle></DialogHeader>
         <div className="space-y-3">
           <div><Label>Email *</Label><Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="john@example.com" type="email" /></div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div><Label>First Name</Label><Input value={firstName} onChange={(e) => setFirstName(e.target.value)} /></div>
             <div><Label>Last Name</Label><Input value={lastName} onChange={(e) => setLastName(e.target.value)} /></div>
           </div>
@@ -971,7 +975,7 @@ function CalendarTab() {
           return (
             <div
               key={i}
-              className={`bg-background min-h-[80px] p-1.5 ${
+              className={`bg-background min-h-[56px] md:min-h-[80px] p-1 md:p-1.5 ${
                 day ? "" : "bg-muted/30"
               } ${isToday(day || 0) ? "ring-2 ring-primary/30 ring-inset" : ""}`}
             >
@@ -1092,7 +1096,7 @@ function TemplatesTab() {
           </CardContent>
         </Card>
       ) : (
-        <div className="rounded-md border">
+        <div className="rounded-md border overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>

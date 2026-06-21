@@ -67,8 +67,8 @@ export default function CreatePostBox({
 
   return (
     <Card>
-      <CardContent className="pt-4">
-        <div className="flex gap-3">
+      <CardContent className="px-3 pt-4 sm:px-6">
+        <div className="flex gap-2 sm:gap-3">
           <Avatar>
             <AvatarImage src={avatarUrl || "/placeholder.svg"} />
             <AvatarFallback>{initials}</AvatarFallback>
@@ -116,8 +116,8 @@ export default function CreatePostBox({
               onChange={handleMediaSelect}
             />
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex min-w-0 items-center gap-2">
                 <Select value={selectedValue} onValueChange={setSelectedValue}>
                   <SelectTrigger className="h-8 w-auto gap-1.5 text-xs">
                     <SelectValue />
@@ -152,7 +152,7 @@ export default function CreatePostBox({
               <Button
                 onClick={handleSubmit}
                 disabled={(!content.trim() && !pendingMedia) || isPosting}
-                className="rounded-lg px-6"
+                className="shrink-0 rounded-lg px-4 sm:px-6"
               >
                 {isPosting ? "Posting..." : "Post"}
               </Button>

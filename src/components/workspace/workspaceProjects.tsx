@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select";
 import GroupChat from "@/components/social/GroupChat";
 import { useInvalidation } from "@/hooks/use-invalidation";
+import { useIsMobile } from "@/hooks/use-is-mobile";
 import {
   createWorkspaceChannel,
   getChatChannel,
@@ -209,6 +210,7 @@ export default function WorkspaceProjects() {
   const [isInviting, setIsInviting] = useState(false);
   const [showMemberDropdown, setShowMemberDropdown] = useState(false);
   const [showWorkspaceMenu, setShowWorkspaceMenu] = useState(false);
+  const isMobile = useIsMobile();
   const [showGitHubOwnerModal, setShowGitHubOwnerModal] = useState(false);
 
   // Share task state
@@ -330,7 +332,9 @@ export default function WorkspaceProjects() {
   }, [showMemberDropdown, closeMemberDropdown]);
 
   useEffect(() => {
-    if (!showWorkspaceMenu) return;
+    // On mobile the menu is a centered modal with its own backdrop, so skip the
+    // popover outside-click handler there.
+    if (!showWorkspaceMenu || isMobile) return;
     const close = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
       if (!target.closest("[data-workspace-menu]")) {
@@ -339,7 +343,7 @@ export default function WorkspaceProjects() {
     };
     document.addEventListener("mousedown", close);
     return () => document.removeEventListener("mousedown", close);
-  }, [showWorkspaceMenu]);
+  }, [showWorkspaceMenu, isMobile]);
 
   const handleCreateChannel = async () => {
     if (!workspaceId || !workspace) return;
@@ -1189,9 +1193,9 @@ export default function WorkspaceProjects() {
   }
 
   return (
-    <div className="mx-2 flex h-[calc(100vh-4rem)] flex-col space-y-3">
+    <div className="mx-2 flex h-[calc(100dvh-8rem-env(safe-area-inset-bottom))] flex-col space-y-3 md:h-[calc(100vh-4rem)]">
       {/* Row 1: Back + Title + Description below */}
-      <div className="flex items-start gap-3" data-tour="workspace-header">
+      <div className="flex flex-col gap-3 md:flex-row md:items-start" data-tour="workspace-header">
         <Button
           variant="ghost"
           size="sm"
@@ -1201,8 +1205,8 @@ export default function WorkspaceProjects() {
         >
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <div>
-          <h1 className="text-3xl font-bold">{workspace.name}</h1>
+        <div className="min-w-0 flex-1">
+          <h1 className="text-2xl font-bold md:text-3xl break-words">{workspace.name}</h1>
           {isEditingDescription ? (
             <div className="mt-1 flex items-start gap-2 max-w-lg">
               <div className="flex-1 space-y-1">
@@ -1283,7 +1287,7 @@ export default function WorkspaceProjects() {
             </button>
           )}
         </div>
-        <div className="flex flex-wrap items-center gap-2 shrink-0 ml-auto">
+        <div className="flex flex-wrap items-center gap-2 shrink-0 md:ml-auto">
           <div className="flex items-center gap-1 rounded-lg border p-0.5" data-tour="workspace-view-toggle">
             <Button
               variant={viewMode === "board" ? "default" : "ghost"}
@@ -1302,7 +1306,7 @@ export default function WorkspaceProjects() {
               <List className="h-4 w-4" />
             </Button>
           </div>
-          <div className="relative w-64" data-tour="workspace-search">
+          <div className="relative w-full sm:w-64" data-tour="workspace-search">
             <Search className="pointer-events-none absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               value={searchQuery}
@@ -1329,7 +1333,7 @@ export default function WorkspaceProjects() {
 
             {showFilterCard && (
               <div
-                className="absolute right-0 top-11 z-50 w-[26rem] rounded-lg border bg-popover p-4 shadow-lg space-y-4"
+                className="absolute right-0 top-11 z-50 w-[calc(100vw-2rem)] max-w-[26rem] rounded-lg border bg-popover p-4 shadow-lg space-y-4"
                 onPointerDownCapture={(e) => {
                   // Prevent clicks inside the filter card from bubbling to outside-click handlers
                   e.stopPropagation();
@@ -1508,7 +1512,35 @@ export default function WorkspaceProjects() {
             </Button>
 
             {showWorkspaceMenu && (
-              <div className="absolute right-0 top-11 z-50 w-72 rounded-md border bg-popover shadow-lg" onClick={(e) => e.stopPropagation()}>
+              <>
+                {isMobile && (
+                  <div
+                    className="fixed inset-0 z-40 bg-black/40"
+                    onClick={() => setShowWorkspaceMenu(false)}
+                    aria-hidden="true"
+                  />
+                )}
+                <div
+                  className={
+                    isMobile
+                      ? "fixed left-1/2 top-1/2 z-50 max-h-[85vh] w-[90vw] max-w-sm -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-lg border bg-popover shadow-xl"
+                      : "absolute right-0 top-11 z-50 w-72 rounded-md border bg-popover shadow-lg"
+                  }
+                  onClick={(e) => e.stopPropagation()}
+                >
+                {isMobile && (
+                  <div className="flex items-center justify-between border-b px-3 py-2.5">
+                    <span className="text-sm font-semibold">Workspace</span>
+                    <button
+                      type="button"
+                      onClick={() => setShowWorkspaceMenu(false)}
+                      className="grid h-7 w-7 place-items-center rounded-md hover:bg-muted"
+                      aria-label="Close"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                )}
                 {/* Members */}
                 <div className="p-3 border-b">
                   <div className="flex items-center justify-between mb-2">
@@ -1619,19 +1651,20 @@ export default function WorkspaceProjects() {
                     );
                   })()}
                 </div>
-              </div>
+                </div>
+              </>
             )}
           </div>
         </div>
       </div>
 
       {/* Tabs: Dashboard / Tasks / Gantt / Channel / Calendar */}
-      <div className="flex items-center gap-1 border-b border-border" data-tour="workspace-tabs">
+      <div className="flex items-center gap-1 border-b border-border overflow-x-auto" data-tour="workspace-tabs">
         <button
           type="button"
           onClick={() => setProjectTab("dashboard")}
           data-tour="workspace-tab-dashboard"
-          className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px flex items-center gap-1.5 ${
+          className={`shrink-0 whitespace-nowrap px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px flex items-center gap-1.5 ${
             projectTab === "dashboard"
               ? "border-primary text-primary"
               : "border-transparent text-muted-foreground hover:text-foreground"
@@ -1644,7 +1677,7 @@ export default function WorkspaceProjects() {
           type="button"
           onClick={() => setProjectTab("tasks")}
           data-tour="workspace-tab-tasks"
-          className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
+          className={`shrink-0 whitespace-nowrap px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
             projectTab === "tasks"
               ? "border-primary text-primary"
               : "border-transparent text-muted-foreground hover:text-foreground"
@@ -1656,7 +1689,7 @@ export default function WorkspaceProjects() {
           type="button"
           onClick={() => setProjectTab("gantt")}
           data-tour="workspace-tab-gantt"
-          className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px flex items-center gap-1.5 ${
+          className={`shrink-0 whitespace-nowrap px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px flex items-center gap-1.5 ${
             projectTab === "gantt"
               ? "border-primary text-primary"
               : "border-transparent text-muted-foreground hover:text-foreground"
@@ -1676,7 +1709,7 @@ export default function WorkspaceProjects() {
             }
           }}
           data-tour="workspace-tab-channel"
-          className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px flex items-center gap-1.5 ${
+          className={`shrink-0 whitespace-nowrap px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px flex items-center gap-1.5 ${
             projectTab === "channel"
               ? "border-primary text-primary"
               : "border-transparent text-muted-foreground hover:text-foreground"
@@ -1689,7 +1722,7 @@ export default function WorkspaceProjects() {
           type="button"
           onClick={() => setProjectTab("calendar")}
           data-tour="workspace-tab-calendar"
-          className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px flex items-center gap-1.5 ${
+          className={`shrink-0 whitespace-nowrap px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px flex items-center gap-1.5 ${
             projectTab === "calendar"
               ? "border-primary text-primary"
               : "border-transparent text-muted-foreground hover:text-foreground"
@@ -1740,6 +1773,7 @@ export default function WorkspaceProjects() {
         ) : fullChannel ? (
           <div className="min-h-0 flex-1">
             <GroupChat
+              fillParent
               channel={fullChannel}
               currentUserId={currentUserId || ""}
               currentUserName={(() => {
@@ -1779,7 +1813,7 @@ export default function WorkspaceProjects() {
           />
         </div>
       ) : viewMode === "board" ? (
-        <div className="min-h-0 flex-1 rounded-2xl p-3">
+        <div className="min-h-0 flex-1 rounded-2xl p-1 md:p-3">
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}
@@ -1833,7 +1867,7 @@ export default function WorkspaceProjects() {
                 </SortableContext>
               ))}
 
-              <div className="h-full w-[290px] shrink-0 rounded-xl border border-dashed border-border bg-card p-2.5">
+              <div className="h-full w-[85vw] max-w-[320px] shrink-0 rounded-xl border border-dashed border-border bg-card p-2.5 sm:w-[290px]">
                 <div className="mb-2 px-1 text-sm font-semibold text-foreground">
                   Add a new bucket
                 </div>

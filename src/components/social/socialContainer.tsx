@@ -32,6 +32,7 @@ import { useNavigate } from "@tanstack/react-router";
 import {
   Archive,
   ArrowLeft,
+  ChevronDown,
   ImagePlus,
   Loader2,
   MessageSquare,
@@ -42,6 +43,7 @@ import {
   Rss,
   Star,
 } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-is-mobile";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
@@ -78,6 +80,10 @@ export default function SocialPage() {
   const [posts, setPosts] = useState<UiPost[]>([]);
   const [channels, setChannels] = useState<ChatChannel[]>([]);
   const [isLoadingChannels, setIsLoadingChannels] = useState(false);
+  // On mobile the channels list is collapsed by default to save vertical space.
+  const isMobile = useIsMobile();
+  const [channelsOpen, setChannelsOpen] = useState(false);
+  const channelsVisible = !isMobile || channelsOpen;
   const [isCreatingChannel, setIsCreatingChannel] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -652,11 +658,28 @@ export default function SocialPage() {
         </div>
         <div className="grid gap-3 @[700px]/main:grid-cols-[minmax(240px,320px)_minmax(0,1fr)] @[1100px]/main:grid-cols-[minmax(240px,320px)_minmax(0,1fr)_minmax(240px,320px)]">
           {/* ====== Left sidebar: Groups + Profile (collapsed layout) ====== */}
-          <aside className="space-y-4 lg:sticky lg:top-4 lg:self-start">
+          <aside
+            className={`space-y-4 lg:sticky lg:top-4 lg:self-start ${
+              activeChannel && channelViewMode === "chat" ? "max-md:hidden" : ""
+            }`}
+          >
             {/* Groups / Teams card */}
             <Card className="flex flex-col gap-0 py-0" data-tour="social-channels" style={{ maxHeight: "calc(100vh - 140px)" }}>
               <div className="flex items-center justify-between px-3 py-3 shrink-0 border-b border-border">
-                <span className="text-sm font-semibold">Channels</span>
+                <button
+                  type="button"
+                  onClick={() => isMobile && setChannelsOpen((v) => !v)}
+                  className="flex items-center gap-1.5 text-left md:cursor-default"
+                  aria-expanded={channelsVisible}
+                >
+                  <span className="text-sm font-semibold">Channels</span>
+                  <ChevronDown
+                    className={cn(
+                      "h-4 w-4 text-muted-foreground transition-transform md:hidden",
+                      channelsVisible ? "rotate-180" : "",
+                    )}
+                  />
+                </button>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -667,7 +690,12 @@ export default function SocialPage() {
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
-              <div className="flex-1 min-h-0 overflow-y-auto px-3 py-2">
+              <div
+                className={cn(
+                  "flex-1 min-h-0 overflow-y-auto px-3 py-2",
+                  channelsVisible ? "" : "hidden",
+                )}
+              >
                 {isLoadingChannels ? (
                   <div className="flex items-center gap-2 py-2">
                     <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
@@ -1012,7 +1040,7 @@ function EditChannelDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="w-[95vw] max-w-md max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit Channel</DialogTitle>
           <DialogDescription>

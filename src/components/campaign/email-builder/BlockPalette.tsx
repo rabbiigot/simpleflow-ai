@@ -40,7 +40,7 @@ export default function BlockPalette({ onAddBlock, compact }: BlockPaletteProps)
           Click a block to add it to the selected section
         </p>
       )}
-      <div className={`grid gap-1.5 ${compact ? "grid-cols-5" : "grid-cols-3"}`}>
+      <div className={`grid gap-1.5 ${compact ? "grid-cols-4 sm:grid-cols-5" : "grid-cols-3"}`}>
         {BLOCK_DEFINITIONS.map((def) => {
           const Icon = ICON_MAP[def.icon] || Type;
           return (

@@ -191,7 +191,7 @@ export function DashboardView({
       {/* Summary cards */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Card className="gap-0 py-0">
-          <CardContent className="p-5 flex items-center gap-3">
+          <CardContent className="p-4 flex items-center gap-3 md:p-5">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-500/10">
               <ListTodo className="h-5 w-5 text-blue-500" />
             </div>
@@ -203,7 +203,7 @@ export function DashboardView({
         </Card>
 
         <Card className="gap-0 py-0">
-          <CardContent className="p-5 flex items-center gap-3">
+          <CardContent className="p-4 flex items-center gap-3 md:p-5">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10">
               <CheckCircle2 className="h-5 w-5 text-emerald-500" />
             </div>
@@ -215,7 +215,7 @@ export function DashboardView({
         </Card>
 
         <Card className="gap-0 py-0">
-          <CardContent className="p-5 flex items-center gap-3">
+          <CardContent className="p-4 flex items-center gap-3 md:p-5">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-500/10">
               <AlertTriangle className="h-5 w-5 text-red-500" />
             </div>
@@ -227,7 +227,7 @@ export function DashboardView({
         </Card>
 
         <Card className="gap-0 py-0">
-          <CardContent className="p-5 flex items-center gap-3">
+          <CardContent className="p-4 flex items-center gap-3 md:p-5">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-amber-500/10">
               <Clock className="h-5 w-5 text-amber-500" />
             </div>
@@ -264,7 +264,7 @@ export function DashboardView({
               <p className="text-xs text-muted-foreground pt-2">No buckets yet</p>
             ) : (
               <div className="space-y-4">
-                <div className="flex items-center gap-4">
+                <div className="flex flex-col items-center gap-4 sm:flex-row">
                   {/* Donut chart */}
                   <div className="relative h-[180px] w-[180px] shrink-0">
                     <ResponsiveContainer width="100%" height="100%">

@@ -1039,7 +1039,7 @@ export function TaskEditorDialog({
     >
       <DialogContent
         showCloseButton={false}
-        className={`border-0 bg-card text-card-foreground overflow-hidden p-0 gap-0 ${showChat ? "sm:max-w-4xl" : "sm:max-w-2xl"}`}
+        className={`border-0 bg-card text-card-foreground overflow-hidden p-0 gap-0 w-[95vw] max-w-[95vw] max-h-[90vh] ${showChat ? "sm:max-w-4xl" : "sm:max-w-2xl"}`}
       >
         {editor && (
           <>
@@ -1127,12 +1127,12 @@ export function TaskEditorDialog({
             </div>
 
             {/* Two-panel body */}
-            <div className={`flex ${showChat ? "divide-x divide-border" : ""}`}>
+            <div className={`flex flex-col md:flex-row ${showChat ? "divide-y md:divide-y-0 md:divide-x divide-border" : ""}`}>
               {/* Left: Form panel */}
               <div
-                className={`px-3 py-4 ${showChat ? "flex-1 min-w-0" : "w-full"}`}
+                className={`px-2 py-3 md:px-3 md:py-4 ${showChat ? "flex-1 min-w-0" : "w-full"}`}
               >
-                <div className="space-y-4 overflow-y-auto max-h-[75vh] px-3 py-1">
+                <div className="space-y-4 overflow-y-auto max-h-[55vh] md:max-h-[75vh] px-1 py-1 md:px-3">
                   {/* Title + Description - inline edit */}
                   <InlineTitleDescription
                     editor={editor}
@@ -1888,7 +1888,7 @@ export function TaskEditorDialog({
 
               {/* Right: Comments & Activity panel */}
               {showChat && (
-                <div className="w-[360px] shrink-0 flex flex-col px-4 pt-4 pb-2 max-h-[78vh]">
+                <div className="w-full md:w-[360px] shrink-0 flex flex-col px-3 pt-3 pb-2 md:px-4 md:pt-4 max-h-[45vh] md:max-h-[78vh]">
                   <div className="flex-1 flex flex-col min-h-0">
                     <TaskChatSection
                       workspaceId={workspaceId!}
@@ -1915,7 +1915,7 @@ export function TaskEditorDialog({
             </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-between border-t border-border px-5 py-3">
+            <div className="flex items-center justify-between border-t border-border px-3 py-2.5 md:px-5 md:py-3">
               <div className="flex items-center gap-1">
                 {editor.taskId && (
                   <Button

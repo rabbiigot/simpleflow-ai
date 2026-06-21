@@ -124,7 +124,7 @@ const InsightsContainer = () => {
   return (
     <div className="page-shell">
       <p className="section-label">Insights & Reports</p>
-      <div className="mx-auto max-w-8xl space-y-6">
+      <div className="mx-auto max-w-8xl space-y-4 md:space-y-6">
         <InsightsHeader
           days={days}
           onDaysChange={handleDaysChange}
@@ -191,7 +191,7 @@ const InsightsContainer = () => {
 
         <MetricsOverview metrics={data.metrics} />
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6" data-tour="insights-charts">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6" data-tour="insights-charts">
           <ProductivityChart data={data.productivityTrend} />
           <TaskCompletionChart data={data.taskStatusOverview} />
         </div>

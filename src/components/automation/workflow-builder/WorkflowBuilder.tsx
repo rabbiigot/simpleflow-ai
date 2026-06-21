@@ -250,8 +250,8 @@ export default function WorkflowBuilder({
   return (
     <div className="flex h-full flex-col">
       {/* Top bar: name, description, save */}
-      <div className="flex flex-wrap items-end gap-4 border-b px-4 py-3">
-        <div className="flex-1 min-w-[200px] space-y-1">
+      <div className="flex flex-wrap items-end gap-3 border-b px-3 py-3 md:gap-4 md:px-4">
+        <div className="flex-1 min-w-full md:min-w-[200px] space-y-1">
           <Label htmlFor="automation-name" className="text-xs">
             Name
           </Label>
@@ -262,7 +262,7 @@ export default function WorkflowBuilder({
             onChange={(e) => setName(e.target.value)}
           />
         </div>
-        <div className="flex-1 min-w-[200px] space-y-1">
+        <div className="flex-1 min-w-full md:min-w-[200px] space-y-1">
           <Label htmlFor="automation-desc" className="text-xs">
             Description
           </Label>
@@ -278,7 +278,7 @@ export default function WorkflowBuilder({
         <Button
           onClick={handleSave}
           disabled={!canSave || saving}
-          className="gap-2"
+          className="gap-2 w-full md:w-auto"
         >
           <Save className="h-4 w-4" />
           {saving ? "Saving..." : initial ? "Update" : "Save"}
@@ -286,9 +286,9 @@ export default function WorkflowBuilder({
       </div>
 
       {/* 3-panel layout */}
-      <div className="flex flex-1 min-h-0">
+      <div className="flex flex-1 min-h-0 flex-col md:flex-row">
         {/* Left panel: Node palette */}
-        <aside className="w-56 shrink-0 border-r">
+        <aside className="w-full shrink-0 border-b md:w-56 md:border-b-0 md:border-r">
           <NodePalette
             workflow={workflow}
             onAddTrigger={handleAddTrigger}
@@ -297,7 +297,7 @@ export default function WorkflowBuilder({
         </aside>
 
         {/* Center panel: Canvas */}
-        <main className="flex-1 min-w-0 bg-muted/30">
+        <main className="min-h-[320px] flex-1 min-w-0 overflow-auto bg-muted/30">
           <WorkflowCanvas
             workflow={workflow}
             selectedNode={selectedNode}
@@ -309,7 +309,7 @@ export default function WorkflowBuilder({
         </main>
 
         {/* Right panel: Config */}
-        <aside className="w-72 shrink-0 border-l overflow-hidden">
+        <aside className="w-full shrink-0 border-t md:w-72 md:border-t-0 md:border-l overflow-hidden">
           <ScrollArea className="h-full max-h-full">
             {selectedTrigger && (
               <TriggerConfigPanel

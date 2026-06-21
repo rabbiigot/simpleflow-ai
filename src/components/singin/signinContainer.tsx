@@ -86,7 +86,7 @@ const SignInContainer: React.FC<SignInContainerProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[450px]">
+      <DialogContent className="w-[calc(100%-2rem)] max-w-[450px] sm:max-w-[450px]">
         {/* STEP 1 — EMAIL */}
         {step === "email" && (
           <>
@@ -110,7 +110,10 @@ const SignInContainer: React.FC<SignInContainerProps> = ({
                 />
               </div>
 
-              <Button onClick={handleEmailContinue} className="bg-orange-500">
+              <Button
+                onClick={handleEmailContinue}
+                className="h-11 w-full bg-orange-500"
+              >
                 <Tent className="mr-1 h-5 w-5" />
                 Continue Simpleflow sign up
               </Button>
@@ -122,7 +125,7 @@ const SignInContainer: React.FC<SignInContainerProps> = ({
               <Button
                 variant="outline"
                 type="button"
-                className="hover:cursor-pointer"
+                className="h-11 w-full hover:cursor-pointer"
                 onClick={handleGoogleSignIn}
               >
                 <img

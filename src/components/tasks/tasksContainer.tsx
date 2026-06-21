@@ -296,10 +296,10 @@ const TasksContainer = () => {
 
   return (
     <div className="page-shell">
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="section-label">Tasks</p>
-          <h1 className="text-3xl font-bold">My Tasks</h1>
+          <h1 className="text-2xl md:text-3xl font-bold">My Tasks</h1>
           <p className="text-muted-foreground mt-2">
             All tasks across your workspaces
           </p>
@@ -307,7 +307,7 @@ const TasksContainer = () => {
 
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
-            <Button className="gap-2">
+            <Button className="gap-2 w-full sm:w-auto">
               <Plus className="h-4 w-4" />
               Create Task
             </Button>
@@ -482,8 +482,8 @@ const TasksContainer = () => {
                           No tasks in this workspace
                         </div>
                       ) : (
-                        <div className="[&_[data-slot=table-container]]:overflow-clip [&_[data-slot=table-container]]:rounded-b-md">
-                          <Table>
+                        <div className="[&_[data-slot=table-container]]:rounded-b-md">
+                          <Table className="min-w-[640px]">
                             <TableHeader>
                               <TableRow className="border-border bg-muted/50">
                                 <TableHead className="w-[35%] pl-10 text-xs font-medium text-muted-foreground">

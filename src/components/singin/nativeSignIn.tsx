@@ -43,7 +43,7 @@ const NativeSignUp = () => {
       </DialogHeader>
 
       <div className="grid gap-4 py-4">
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
             <Label>First name</Label>
             <Input
@@ -111,7 +111,11 @@ const NativeSignUp = () => {
       </div>
 
       <DialogFooter>
-        <Button type="submit" disabled={!passwordsMatch}>
+        <Button
+          type="submit"
+          disabled={!passwordsMatch}
+          className="h-11 w-full sm:w-auto"
+        >
           Create account
         </Button>
       </DialogFooter>

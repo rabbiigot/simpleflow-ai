@@ -11,12 +11,19 @@ import SidebarButton from "./sidebarButton";
 type SidebarButtonProps = {
   sidebarState: string;
   toggleSidebar: () => void;
+  /** When true (mobile drawer), always render the expanded layout and hide the collapse toggle. */
+  forceExpanded?: boolean;
+  /** Called after a nav link is clicked — used to close the mobile drawer. */
+  onNavigate?: () => void;
 };
 
 const SidebarContainer = ({
   sidebarState,
   toggleSidebar,
+  forceExpanded = false,
+  onNavigate,
 }: SidebarButtonProps) => {
+  const effectiveState = forceExpanded ? "expanded" : sidebarState;
   const { pathname } = useLocation();
   const authUser = useAuthStore((s) => s.user);
   const isAdmin = authUser?.role === "ADMIN";
@@ -56,13 +63,14 @@ const SidebarContainer = ({
                 <li key={index}>
                   <Link
                     to={item.href}
+                    onClick={onNavigate}
                     data-tour={`sidebar-${item.name.toLowerCase().replace(/\s+/g, "-")}`}
                     className={cn(
                       isActive
                         ? "bg-linear-to-r from-purple-500 via-indigo-500 to-blue-500 text-white"
                         : "text-sidebar-foreground hover:bg-accent hover:text-sidebar-accent-foreground",
                       "group flex items-center gap-x-2 rounded-md px-1.5 py-2 text-sm font-medium transition-colors duration-200",
-                      sidebarState !== "expanded" && "w-10 justify-center px-0 pl-1.5",
+                      effectiveState !== "expanded" && "w-10 justify-center px-0 pl-1.5",
                     )}
                   >
                     <item.icon
@@ -76,7 +84,7 @@ const SidebarContainer = ({
                     <span
                       className={cn(
                         "whitespace-nowrap overflow-hidden transition-all duration-300",
-                        sidebarState !== "expanded"
+                        effectiveState !== "expanded"
                           ? "opacity-0 w-0"
                           : "opacity-100 ml-2 w-auto",
                       )}
@@ -89,12 +97,14 @@ const SidebarContainer = ({
             })}
           </ul>
         </nav>
-        <FooterContainer sidebarState={sidebarState} />
+        <FooterContainer sidebarState={effectiveState} />
       </Card>
-      <SidebarButton
-        sidebarState={sidebarState}
-        toggleSidebar={toggleSidebar}
-      />
+      {!forceExpanded && (
+        <SidebarButton
+          sidebarState={sidebarState}
+          toggleSidebar={toggleSidebar}
+        />
+      )}
     </>
   );
 };

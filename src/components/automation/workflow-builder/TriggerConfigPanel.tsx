@@ -60,7 +60,7 @@ export default function TriggerConfigPanel({
   }
 
   return (
-    <div className="space-y-6 p-4">
+    <div className="space-y-6 p-3 md:p-4">
       {/* Header */}
       <div className="flex items-center gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10">
@@ -215,7 +215,7 @@ export default function TriggerConfigPanel({
                     logicGate: e.target.value as ConditionLogicGate,
                   })
                 }
-                className="h-7 w-full rounded border border-border bg-background px-2 text-xs"
+                className="h-10 md:h-7 w-full rounded border border-border bg-background px-2 text-xs"
               >
                 <option value="AND">AND</option>
                 <option value="OR">OR</option>
@@ -229,7 +229,7 @@ export default function TriggerConfigPanel({
               onChange={(e) =>
                 onUpdateCondition({ ...cond, field: e.target.value })
               }
-              className="h-7 w-full rounded border border-border bg-background px-2 text-xs"
+              className="h-10 md:h-7 w-full rounded border border-border bg-background px-2 text-xs"
             />
 
             <select
@@ -240,7 +240,7 @@ export default function TriggerConfigPanel({
                   operator: e.target.value as ConditionOperator,
                 })
               }
-              className="h-7 w-full rounded border border-border bg-background px-2 text-xs"
+              className="h-10 md:h-7 w-full rounded border border-border bg-background px-2 text-xs"
             >
               {(
                 Object.entries(CONDITION_OPERATOR_LABELS) as Array<
@@ -262,7 +262,7 @@ export default function TriggerConfigPanel({
                   onChange={(e) =>
                     onUpdateCondition({ ...cond, value: e.target.value })
                   }
-                  className="h-7 w-full rounded border border-border bg-background px-2 text-xs"
+                  className="h-10 md:h-7 w-full rounded border border-border bg-background px-2 text-xs"
                 />
               )}
           </div>

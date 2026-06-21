@@ -63,6 +63,12 @@ export default function SocialProfileContainer({ profileUserId, initialTab }: Pr
   const [editBioValue, setEditBioValue] = useState("");
   const [isSavingBio, setIsSavingBio] = useState(false);
 
+  // Mobile master-detail: show the section card list first, then swap to the
+  // selected section's content (with a Back button to return to the list).
+  // Responsiveness is handled via md:/max-md: classes; this only tracks which
+  // pane is showing on mobile.
+  const [mobileDetail, setMobileDetail] = useState(false);
+
   useEffect(() => {
     if (initialTab) setActiveTab(initialTab as ProfileTab);
   }, [initialTab]);
@@ -310,7 +316,7 @@ export default function SocialProfileContainer({ profileUserId, initialTab }: Pr
           </div>
 
           {/* Avatar + Name + Actions bar */}
-          <div className="relative px-6 pb-4">
+          <div className="relative px-4 pb-4 sm:px-6">
             {/* Avatar overlapping cover */}
             <div className="absolute -top-12 left-6">
               <div className="relative group">
@@ -328,7 +334,7 @@ export default function SocialProfileContainer({ profileUserId, initialTab }: Pr
 
               {/* Avatar preview dialog */}
               <Dialog open={showAvatarPreview} onOpenChange={setShowAvatarPreview}>
-                <DialogContent showCloseButton={false} className="sm:max-w-md flex flex-col items-center gap-4 p-6">
+                <DialogContent showCloseButton={false} className="w-[95vw] max-w-md flex flex-col items-center gap-4 p-6">
                   <div className="flex w-full justify-end">
                     <button
                       type="button"
@@ -383,7 +389,13 @@ export default function SocialProfileContainer({ profileUserId, initialTab }: Pr
         <div className="flex gap-6 flex-col md:flex-row">
           {/* Left sidebar navigation */}
           {isOwnProfile && (
-            <nav className="w-full md:w-64 shrink-0">
+            <nav
+              className={`w-full md:w-64 shrink-0 ${
+                mobileDetail
+                  ? "hidden md:block"
+                  : "max-md:animate-in max-md:slide-in-from-left-4 max-md:fade-in max-md:duration-200"
+              }`}
+            >
               <h3 className="text-sm font-medium text-muted-foreground mb-2">Profile Details</h3>
               <Card className="rounded-md shadow-sm p-0">
                 <div className="flex flex-col p-2">
@@ -393,7 +405,7 @@ export default function SocialProfileContainer({ profileUserId, initialTab }: Pr
                   </p>
                   <button
                     type="button"
-                    onClick={() => setActiveTab("posts")}
+                    onClick={() => { setActiveTab("posts"); setMobileDetail(true); }}
                     className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors cursor-pointer ${
                       activeTab === "posts"
                         ? "bg-primary/10 text-primary"
@@ -416,7 +428,7 @@ export default function SocialProfileContainer({ profileUserId, initialTab }: Pr
                           <button
                             key={item.id}
                             type="button"
-                            onClick={() => setActiveTab(item.id)}
+                            onClick={() => { setActiveTab(item.id); setMobileDetail(true); }}
                             className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors cursor-pointer ${
                               activeTab === item.id
                                 ? "bg-primary/10 text-primary"
@@ -436,6 +448,25 @@ export default function SocialProfileContainer({ profileUserId, initialTab }: Pr
           )}
 
           {/* Content area */}
+          <div
+            className={`min-w-0 flex-1 ${
+              isOwnProfile && !mobileDetail
+                ? "hidden md:block"
+                : isOwnProfile
+                  ? "max-md:animate-in max-md:slide-in-from-right-4 max-md:fade-in max-md:duration-200"
+                  : ""
+            }`}
+          >
+            {isOwnProfile && (
+              <button
+                type="button"
+                onClick={() => setMobileDetail(false)}
+                className="md:hidden mb-3 flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Back
+              </button>
+            )}
           {activeTab === "posts" ? (
             <div className="flex flex-1 gap-6 min-w-0">
               {/* Posts feed */}
@@ -560,6 +591,7 @@ export default function SocialProfileContainer({ profileUserId, initialTab }: Pr
               <ProfileSettings embedded initialTab={activeTab as SettingsTab} />
             </div>
           )}
+          </div>
         </div>
       </div>
     </div>

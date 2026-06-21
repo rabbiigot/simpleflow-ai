@@ -92,7 +92,7 @@ export default function TrelloCardPicker({
   );
 
   const wrap =
-    "absolute top-full right-0 mt-1 w-80 rounded-lg border bg-card shadow-lg z-20";
+    "absolute top-full right-0 mt-1 w-[min(20rem,calc(100vw-2rem))] md:w-80 rounded-lg border bg-card shadow-lg z-20";
 
   if (status && !status.connected) {
     return (

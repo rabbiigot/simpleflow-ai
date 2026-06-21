@@ -561,15 +561,15 @@ const WorkspaceContainer = () => {
   return (
     <div className="page-shell">
       {/* Header + Toolbar */}
-      <div className="flex items-start justify-between gap-4 mb-2">
+      <div className="flex flex-col gap-4 mb-2 md:flex-row md:items-start md:justify-between">
         <div>
           <p className="section-label">Workspace</p>
-          <h1 className="text-3xl font-bold text-balance">Your Space</h1>
+          <h1 className="text-2xl font-bold text-balance md:text-3xl">Your Space</h1>
           <p className="text-muted-foreground mt-2 text-pretty">
             Set goals and stay on track every day
           </p>
         </div>
-        <div className="flex items-center gap-2 shrink-0 mt-4">
+        <div className="flex items-center gap-2 shrink-0 md:mt-4">
         <div className="relative flex-1 max-w-sm">
           <Search className="pointer-events-none absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input

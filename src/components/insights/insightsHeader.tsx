@@ -118,10 +118,10 @@ export function InsightsHeader({ days, onDaysChange, metrics, reports, onReportC
       <div className="flex flex-col gap-4">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-4xl font-bold text-foreground">
+            <h1 className="text-2xl md:text-4xl font-bold text-foreground">
               Performance
             </h1>
-            <p className="text-muted-foreground mt-2">
+            <p className="text-sm md:text-base text-muted-foreground mt-1 md:mt-2">
               Track your productivity and measure what matters
             </p>
           </div>
@@ -138,10 +138,10 @@ export function InsightsHeader({ days, onDaysChange, metrics, reports, onReportC
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 md:gap-4">
           {workspaces && workspaces.length > 0 && (
             <Select value={selectedWorkspaceId ?? "all"} onValueChange={onWorkspaceChange} data-tour="insights-workspace">
-              <SelectTrigger className="w-44 h-8 text-xs rounded-full">
+              <SelectTrigger className="w-full sm:w-44 h-8 text-xs rounded-full">
                 <SelectValue placeholder="All Workspaces" />
               </SelectTrigger>
               <SelectContent>
@@ -166,15 +166,15 @@ export function InsightsHeader({ days, onDaysChange, metrics, reports, onReportC
             </Button>
           ))}
 
-          <div className="flex items-center gap-1.5 ml-auto" data-tour="insights-ai">
-            <div className="relative">
+          <div className="flex items-center gap-1.5 w-full sm:w-auto sm:ml-auto" data-tour="insights-ai">
+            <div className="relative flex-1 sm:flex-none">
               <Sparkles className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
               <Input
                 value={promptValue ?? ""}
                 onChange={(e) => onPromptChange?.(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); onPromptSubmit?.(); } }}
                 placeholder="Ask about your analytics..."
-                className="pl-8 h-8 text-xs w-56 rounded-full"
+                className="pl-8 h-8 text-xs w-full sm:w-56 rounded-full"
                 disabled={isPromptLoading}
               />
             </div>
@@ -194,7 +194,7 @@ export function InsightsHeader({ days, onDaysChange, metrics, reports, onReportC
 
       {/* Preview Modal */}
       <Dialog open={previewType !== null} onOpenChange={(open) => { if (!open) closePreview(); }}>
-        <DialogContent className="max-w-4xl h-[80vh] flex flex-col">
+        <DialogContent className="w-[95vw] max-w-4xl h-[80vh] flex flex-col">
           <DialogHeader className="shrink-0">
             <DialogTitle>
               {previewType === "pdf" ? "PDF Preview" : "CSV Preview"}

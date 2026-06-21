@@ -121,17 +121,17 @@ const AnalyticsContainer = () => {
   return (
     <div className="px-4 py-8 sm:px-6 lg:px-8">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6 md:mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-balance">Analytics</h1>
-          <p className="text-muted-foreground mt-2 text-pretty">
+          <h1 className="text-2xl md:text-3xl font-bold text-balance">Analytics</h1>
+          <p className="text-sm md:text-base text-muted-foreground mt-1 md:mt-2 text-pretty">
             Track your progress and analyze your goal achievement patterns
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 md:gap-3">
           <Select value={selectedWorkspaceId} onValueChange={handleWorkspaceChange}>
-            <SelectTrigger className="w-48">
+            <SelectTrigger className="w-full sm:w-48">
               <SelectValue placeholder="All Workspaces" />
             </SelectTrigger>
             <SelectContent>
@@ -145,7 +145,7 @@ const AnalyticsContainer = () => {
           </Select>
 
           <Select value={periodKey} onValueChange={handlePeriodChange}>
-            <SelectTrigger className="w-40">
+            <SelectTrigger className="w-full sm:w-40">
               <SelectValue placeholder="Time period" />
             </SelectTrigger>
             <SelectContent>
@@ -172,7 +172,7 @@ const AnalyticsContainer = () => {
       )}
 
       {/* Key Metrics */}
-      <div className="grid gap-6 mb-8 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:gap-6 mb-6 md:mb-8 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
@@ -261,7 +261,7 @@ const AnalyticsContainer = () => {
       </div>
 
       {/* Charts Grid */}
-      <div className="grid gap-6 lg:grid-cols-2 mb-8">
+      <div className="grid gap-4 md:gap-6 lg:grid-cols-2 mb-6 md:mb-8">
         {/* Productivity Trend */}
         <Card>
           <CardHeader>
@@ -274,7 +274,7 @@ const AnalyticsContainer = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="h-80">
+            <div className="h-64 md:h-80">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={productivityTrend}>
                   <CartesianGrid
@@ -327,7 +327,7 @@ const AnalyticsContainer = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="h-80">
+            <div className="h-64 md:h-80">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={taskStatusOverview}>
                   <CartesianGrid

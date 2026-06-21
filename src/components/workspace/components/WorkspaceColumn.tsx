@@ -50,7 +50,7 @@ export function WorkspaceColumn({
   return (
     <div
       ref={setNodeRef}
-      className={`flex h-full w-[290px] shrink-0 flex-col rounded-xl border border-border bg-card p-2.5 ${
+      className={`flex h-full w-[85vw] max-w-[320px] shrink-0 flex-col rounded-xl border border-border bg-card p-2.5 sm:w-[290px] ${
         isOver ? "ring-2 ring-ring" : ""
       }`}
     >

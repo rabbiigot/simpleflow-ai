@@ -296,7 +296,7 @@ export function WorkspaceCalendarView({ columns, effectiveColumnColors, workspac
   };
 
   return (
-    <div className="min-h-0 flex-1 flex gap-4 py-2">
+    <div className="h-full min-h-0 flex flex-col md:flex-row gap-4 py-2 overflow-y-auto max-md:pb-4">
       {/* Calendar grid */}
       <div className="flex-1 min-w-0 space-y-4">
         <div className="flex items-center justify-between">
@@ -321,7 +321,8 @@ export function WorkspaceCalendarView({ columns, effectiveColumnColors, workspac
           </div>
         </div>
 
-        <div className="grid grid-cols-7 gap-px bg-border rounded-md border border-border overflow-hidden">
+        <div className="-mx-1 overflow-x-auto px-1 md:mx-0 md:px-0">
+        <div className="grid grid-cols-7 gap-px bg-border rounded-md border border-border overflow-hidden min-w-[560px] md:min-w-0">
           {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
             <div key={d} className="bg-muted px-2 py-1.5 text-center text-[11px] font-medium text-muted-foreground">
               {d}
@@ -386,6 +387,7 @@ export function WorkspaceCalendarView({ columns, effectiveColumnColors, workspac
             );
           })}
         </div>
+        </div>
 
         {/* Legend */}
         <div className="flex items-center gap-4 text-[10px] text-muted-foreground">
@@ -402,7 +404,7 @@ export function WorkspaceCalendarView({ columns, effectiveColumnColors, workspac
 
       {/* Side panel — up to 3 cards */}
       {selectedEntries.length > 0 && (
-        <div className="w-80 shrink-0 space-y-3 self-start sticky top-4">
+        <div className="w-full md:w-80 shrink-0 space-y-3 self-start md:sticky md:top-4">
           {selectedEntries.map((entry) => {
             const entryKey = entry.type + "-" + entry.id;
             const isActive = activeActionId === entryKey;

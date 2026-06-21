@@ -169,13 +169,13 @@ export function AdminOrganizations({ token, onLogout }: Props) {
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-6 py-6">
-      <div className="mb-6 flex items-center justify-between gap-4">
+    <div className="mx-auto max-w-7xl px-4 py-6 md:px-6">
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Building2 className="h-4 w-4" />
           <span>{total} organizations &amp; accounts</span>
         </div>
-        <div className="relative w-72">
+        <div className="relative w-full sm:w-72">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search organizations..."
@@ -187,6 +187,7 @@ export function AdminOrganizations({ token, onLogout }: Props) {
       </div>
 
       <div className="rounded-lg border bg-card">
+        <div className="overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
@@ -261,9 +262,10 @@ export function AdminOrganizations({ token, onLogout }: Props) {
             )}
           </TableBody>
         </Table>
+        </div>
 
         {totalPages >= 1 && (
-          <div className="flex items-center justify-between border-t px-4 py-3">
+          <div className="flex flex-col gap-2 border-t px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
             <span className="text-sm text-muted-foreground">
               Showing {Math.min((page - 1) * 10 + 1, total)}–
               {Math.min(page * 10, total)} of {total}
@@ -359,7 +361,7 @@ function OrgDetailView({
   };
 
   return (
-    <div className="mx-auto max-w-5xl px-6 py-6">
+    <div className="mx-auto max-w-5xl px-4 py-6 md:px-6">
       <Button variant="ghost" size="sm" onClick={onBack} className="mb-4">
         <ArrowLeft className="mr-2 h-4 w-4" />
         Back to list

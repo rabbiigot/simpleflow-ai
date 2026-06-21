@@ -196,7 +196,7 @@ export function AdminDashboard({ token, onLogout }: Props) {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <div className="border-b bg-card">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
+        <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-4 md:flex-row md:items-center md:justify-between md:px-6">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
               <Shield className="h-5 w-5 text-primary" />
@@ -208,11 +208,12 @@ export function AdminDashboard({ token, onLogout }: Props) {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="flex rounded-lg border p-0.5">
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-1 rounded-lg border p-0.5 md:flex-none">
               <Button
                 variant={view === "organizations" ? "default" : "ghost"}
                 size="sm"
+                className="flex-1 md:flex-none"
                 onClick={() => setView("organizations")}
               >
                 <Building2 className="mr-2 h-4 w-4" />
@@ -221,6 +222,7 @@ export function AdminDashboard({ token, onLogout }: Props) {
               <Button
                 variant={view === "users" ? "default" : "ghost"}
                 size="sm"
+                className="flex-1 md:flex-none"
                 onClick={() => setView("users")}
               >
                 <Users className="mr-2 h-4 w-4" />
@@ -239,14 +241,14 @@ export function AdminDashboard({ token, onLogout }: Props) {
         <AdminOrganizations token={token} onLogout={onLogout} />
       ) : (
       /* Content */
-      <div className="mx-auto max-w-7xl px-6 py-6">
+      <div className="mx-auto max-w-7xl px-4 py-6 md:px-6">
         {/* Stats & Search */}
-        <div className="mb-6 flex items-center justify-between gap-4">
+        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Users className="h-4 w-4" />
             <span>{total} total users</span>
           </div>
-          <div className="relative w-72">
+          <div className="relative w-full sm:w-72">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder="Search users..."
@@ -259,6 +261,7 @@ export function AdminDashboard({ token, onLogout }: Props) {
 
         {/* Table */}
         <div className="rounded-lg border bg-card">
+          <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -352,10 +355,11 @@ export function AdminDashboard({ token, onLogout }: Props) {
               )}
             </TableBody>
           </Table>
+          </div>
 
           {/* Pagination */}
           {totalPages >= 1 && (
-            <div className="flex items-center justify-between border-t px-4 py-3">
+            <div className="flex flex-col gap-2 border-t px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
               <span className="text-sm text-muted-foreground">
                 Showing {Math.min((page - 1) * 10 + 1, total)}–{Math.min(page * 10, total)} of {total}
               </span>

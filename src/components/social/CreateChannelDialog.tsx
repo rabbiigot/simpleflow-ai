@@ -87,7 +87,7 @@ export default function CreateChannelDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="w-[95vw] max-w-md max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create Channel</DialogTitle>
           <DialogDescription>

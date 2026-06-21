@@ -11,7 +11,7 @@ export function TaskDragPreview({
   const checklistPercent = percentDone(meta.checklist);
 
   return (
-    <div className="w-[300px] rounded-lg border border-border bg-card p-3 shadow-2xl">
+    <div className="w-[calc(100vw-2rem)] max-w-[300px] md:w-[300px] rounded-lg border border-border bg-card p-3 shadow-2xl">
       <div className="mb-2 flex items-start gap-1">
         <GripVertical className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
         <div className="text-sm font-medium text-foreground">{task.title}</div>

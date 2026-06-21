@@ -221,16 +221,16 @@ const FinanceContainer = () => {
   return (
     <div className="px-4 py-8 sm:px-6 lg:px-8">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-balance">Finance</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-balance">Finance</h1>
           <p className="text-muted-foreground mt-2 text-pretty">
             Track your income, expenses, and financial progress towards your
             goals
           </p>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm">
             <Filter className="h-4 w-4 mr-2" />
             Filter
@@ -248,7 +248,7 @@ const FinanceContainer = () => {
                 Add Transaction
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="w-full max-w-full sm:max-w-2xl">
               <DialogHeader>
                 <DialogTitle>
                   {editingTransaction
@@ -263,7 +263,7 @@ const FinanceContainer = () => {
               </DialogHeader>
 
               <div className="space-y-6 py-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="type">Transaction Type</Label>
                     <Select
@@ -300,7 +300,7 @@ const FinanceContainer = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="category">Category</Label>
                     <Input
@@ -572,9 +572,9 @@ const FinanceContainer = () => {
         <TabsContent value="transactions" className="space-y-4">
           {transactions.map((transaction) => (
             <Card key={transaction.id}>
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start gap-4">
+              <CardContent className="p-4 md:p-6">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="flex items-start gap-3 md:gap-4">
                     <div className="p-2 rounded-lg bg-muted">
                       {transaction.type === "INCOME" ? (
                         <ArrowUpRight className="h-4 w-4 text-green-500" />
@@ -587,7 +587,7 @@ const FinanceContainer = () => {
                       <h3 className="font-medium">
                         {transaction.description || transaction.category}
                       </h3>
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                      <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-sm text-muted-foreground">
                         <Badge variant="outline">{transaction.category}</Badge>
                         <div className="flex items-center gap-1">
                           <Calendar className="h-3 w-3" />
@@ -604,7 +604,7 @@ const FinanceContainer = () => {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center justify-between gap-4 sm:justify-end">
                     <div
                       className={`text-lg font-bold ${
                         transaction.type === "INCOME"

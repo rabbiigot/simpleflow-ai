@@ -75,6 +75,7 @@ import {
   X,
   Zap,
 } from "lucide-react";
+import { AnimatePresence, motion, useDragControls } from "framer-motion";
 import type { ReactNode } from "react";
 import {
   FormEvent,
@@ -89,6 +90,12 @@ import {
 type FlowmoAssistantContainerProps = {
   aiState: "expanded" | "collapsed";
   toggleAI: () => void;
+  /** When true, render as a drag-up bottom sheet instead of the fixed right panel. */
+  isMobile?: boolean;
+  /** On mobile, which view to open to when the sheet is expanded. */
+  initialView?: "chat" | "notifications";
+  /** Reports the live unread notification count up to the layout (mobile badge). */
+  onUnreadCountChange?: (count: number) => void;
 };
 
 import type { ChatMessage } from "@/store/flowmo-store";
@@ -790,8 +797,12 @@ function _renderReadableToolResults(results: AiChatResponse["results"]) {
 const FlowmoAssistantContainer: React.FC<FlowmoAssistantContainerProps> = ({
   aiState,
   toggleAI,
+  isMobile = false,
+  initialView = "chat",
+  onUnreadCountChange,
 }) => {
   const navigate = useNavigate();
+  const dragControls = useDragControls();
   const user = useAuthStore((store) => store.user);
   const displayName = (user?.firstName || "").trim() || "there";
 
@@ -1287,6 +1298,18 @@ const FlowmoAssistantContainer: React.FC<FlowmoAssistantContainerProps> = ({
       .then((res) => setWsUnreadCount(res.unreadCount ?? 0))
       .catch(() => {});
   }, [currentUserId, setWsUnreadCount]);
+
+  // Report the unread count up to the layout (drives the mobile top-bar badge).
+  useEffect(() => {
+    onUnreadCountChange?.(wsUnreadCount);
+  }, [wsUnreadCount, onUnreadCountChange]);
+
+  // On mobile, jump to the requested view each time the sheet is opened.
+  useEffect(() => {
+    if (isMobile && aiState === "expanded") {
+      setRightPanelView(initialView);
+    }
+  }, [isMobile, aiState, initialView]);
 
   // Fetch notifications on panel open
   useEffect(() => {
@@ -1785,15 +1808,60 @@ const FlowmoAssistantContainer: React.FC<FlowmoAssistantContainerProps> = ({
     return "Thinking";
   }, [events, isSending]);
 
+  // On mobile, the collapsed panel is hidden entirely — the top bar / bottom-nav
+  // button toggles it open. When open it renders as a drag-up bottom sheet.
+  // Desktop: always mounted. Mobile: only when expanded (slides in/out).
+  const shouldRender = !isMobile || aiState === "expanded";
+
   return (
-    <div
-      data-tour="flowmo-panel"
-      className={`fixed top-0 right-0 p-0 rounded-none ${
-        aiState !== "expanded" ? "w-20" : "w-100"
-      } h-full z-40 bg-card border shadow-sm flex flex-col min-h-0 transition-all duration-200`}
-    >
-      {/* Minimized: vertical stack — Flowmo, Settings, Bell. No header border. */}
-      {aiState !== "expanded" && (
+    <AnimatePresence>
+      {isMobile && shouldRender && (
+        <motion.div
+          key="flowmo-backdrop"
+          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-[1px]"
+          onClick={toggleAI}
+          aria-hidden="true"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+        />
+      )}
+      {shouldRender && (
+      <motion.div
+        key="flowmo-panel"
+        data-tour="flowmo-panel"
+        drag={isMobile ? "y" : false}
+        dragControls={dragControls}
+        dragListener={false}
+        dragConstraints={{ top: 0, bottom: 0 }}
+        dragElastic={{ top: 0, bottom: 0.4 }}
+        onDragEnd={(_, info) => {
+          if (info.offset.y > 120 || info.velocity.y > 600) toggleAI();
+        }}
+        initial={isMobile ? { y: "100%" } : false}
+        animate={isMobile ? { y: 0 } : undefined}
+        exit={isMobile ? { y: "100%" } : undefined}
+        transition={{ type: "spring", damping: 32, stiffness: 320 }}
+        className={cn(
+          "p-0 bg-card border shadow-sm flex flex-col min-h-0 transition-[width] duration-200",
+          isMobile
+            ? "fixed inset-x-0 bottom-0 top-auto z-50 h-[90dvh] rounded-t-2xl"
+            : `fixed top-0 right-0 rounded-none h-full z-40 ${
+                aiState !== "expanded" ? "w-20" : "w-100"
+              }`,
+        )}
+      >
+        {isMobile && (
+          <div
+            onPointerDown={(e) => dragControls.start(e)}
+            className="flex shrink-0 cursor-grab touch-none justify-center pt-2 pb-1 active:cursor-grabbing"
+          >
+            <span className="h-1.5 w-10 rounded-full bg-muted-foreground/30" />
+          </div>
+        )}
+      {/* Minimized: vertical stack — Flowmo, Settings, Bell. Desktop only. */}
+      {!isMobile && aiState !== "expanded" && (
         <div className="flex flex-col items-center gap-1 py-2">
           <button
             type="button"
@@ -1854,8 +1922,8 @@ const FlowmoAssistantContainer: React.FC<FlowmoAssistantContainerProps> = ({
         </div>
       )}
 
-      {/* Expanded: header bar */}
-      {aiState === "expanded" && (
+      {/* Expanded: header bar (always shown on mobile, where the panel only renders when open) */}
+      {(isMobile || aiState === "expanded") && (
         <div className="flex z-40 justify-between items-center w-full h-13 border-b pl-2 pr-2">
           <div className="flex items-center gap-2">
             <button
@@ -1908,14 +1976,16 @@ const FlowmoAssistantContainer: React.FC<FlowmoAssistantContainerProps> = ({
           <div className="flex items-center gap-1">
             {rightPanelView === "chat" && (
               <>
-                <button
-                  type="button"
-                  onClick={() => navigate({ to: "/flowmo" })}
-                  className="grid h-8 w-8 place-items-center rounded-md hover:bg-muted focus:outline-none text-muted-foreground hover:text-foreground"
-                  title="Open full chat"
-                >
-                  <Maximize2 className="h-4 w-4" />
-                </button>
+                {!isMobile && (
+                  <button
+                    type="button"
+                    onClick={() => navigate({ to: "/flowmo" })}
+                    className="grid h-8 w-8 place-items-center rounded-md hover:bg-muted focus:outline-none text-muted-foreground hover:text-foreground"
+                    title="Open full chat"
+                  >
+                    <Maximize2 className="h-4 w-4" />
+                  </button>
+                )}
                 <button
                   type="button"
                   data-tour="flowmo-history"
@@ -2014,7 +2084,7 @@ const FlowmoAssistantContainer: React.FC<FlowmoAssistantContainerProps> = ({
         </div>
       )}
 
-      {aiState !== "expanded" ? null : (
+      {!(isMobile || aiState === "expanded") ? null : (
         <>
           {/* Notifications Panel */}
           {rightPanelView === "notifications" && (
@@ -2911,7 +2981,9 @@ const FlowmoAssistantContainer: React.FC<FlowmoAssistantContainerProps> = ({
           )}
         </>
       )}
-    </div>
+      </motion.div>
+      )}
+    </AnimatePresence>
   );
 };
 

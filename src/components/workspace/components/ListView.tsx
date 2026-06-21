@@ -178,8 +178,8 @@ export function ListView({
                     No tasks in this column
                   </div>
                 ) : (
-                  <div className="[&_[data-slot=table-container]]:overflow-clip [&_[data-slot=table-container]]:rounded-b-md">
-                    <Table>
+                  <div className="[&_[data-slot=table-container]]:rounded-b-md">
+                    <Table className="min-w-[640px]">
                       <TableHeader>
                         <TableRow className="border-border bg-muted/50">
                           <TableHead className="w-[30%] pl-10 text-xs font-medium text-muted-foreground">

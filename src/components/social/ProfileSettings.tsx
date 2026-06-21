@@ -740,8 +740,8 @@ export default function ProfileSettings({ embedded, initialTab }: { embedded?: b
             {isUploadingCover ? "Uploading..." : coverSrc ? "Change Cover" : "Add Cover Photo"}
           </Button>
         </div>
-        <div className="relative px-6 pb-4">
-          <div className="absolute -top-10 left-6">
+        <div className="relative px-4 pb-4 sm:px-6">
+          <div className="absolute -top-10 left-4 sm:left-6">
             <div className="relative group">
               <Avatar className="h-20 w-20 border-4 border-background shadow-md">
                 <AvatarImage src={avatarSrc} />
@@ -1124,7 +1124,7 @@ export default function ProfileSettings({ embedded, initialTab }: { embedded?: b
                     <div className="space-y-4">
                       {/* GitHub */}
                       <div className="rounded-lg border p-4">
-                        <div className="flex items-start justify-between">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                           <div className="flex items-center gap-3">
                             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-black">
                               <img src={githubIcon} alt="GitHub" className="h-5 w-5 invert" />
@@ -1146,7 +1146,7 @@ export default function ProfileSettings({ embedded, initialTab }: { embedded?: b
                             </div>
                           </div>
                           {githubStatus?.connected ? (
-                            <div className="flex gap-2">
+                            <div className="flex flex-wrap gap-2">
                               <Button size="sm" onClick={() => setShowPatDialog(true)} className="gap-1.5 bg-indigo-600 text-white hover:bg-indigo-700">
                                 <Key className="h-3.5 w-3.5" />
                                 PAT Token
@@ -1206,7 +1206,7 @@ export default function ProfileSettings({ embedded, initialTab }: { embedded?: b
 
                       {/* Google Calendar */}
                       <div className="rounded-lg border p-4">
-                        <div className="flex items-start justify-between">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                           <div className="flex items-center gap-3">
                             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white border">
                               <img src={googleIcon} alt="Google" className="h-5 w-5" />
@@ -1228,7 +1228,7 @@ export default function ProfileSettings({ embedded, initialTab }: { embedded?: b
                             </div>
                           </div>
                           {calendarStatus?.connected ? (
-                            <div className="flex gap-2">
+                            <div className="flex flex-wrap gap-2">
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -1594,7 +1594,7 @@ export default function ProfileSettings({ embedded, initialTab }: { embedded?: b
                     orgUsage &&
                     orgUsage.plan.tier !== "FREE" && (
                       <div className="rounded-lg border border-amber-300/40 p-4">
-                        <div className="flex items-center justify-between">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                           <div>
                             <p className="text-sm font-medium text-amber-600">
                               Cancel Subscription
@@ -1621,7 +1621,7 @@ export default function ProfileSettings({ embedded, initialTab }: { embedded?: b
                     )}
 
                   <div className="rounded-lg border border-destructive/20 p-4">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                       <div>
                         <p className="text-sm font-medium text-destructive">Deactivate Account</p>
                         <p className="text-xs text-muted-foreground">

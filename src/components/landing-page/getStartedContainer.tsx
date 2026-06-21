@@ -167,10 +167,10 @@ const GetStartedContainer: React.FC = () => {
               Contact
             </button>
           </nav>
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <Button
               variant="ghost"
-              className="text-muted-foreground hover:text-foreground"
+              className="px-2 text-muted-foreground hover:text-foreground sm:px-4"
               onClick={() => navigate({ to: "/login" })}
             >
               Sign In
@@ -200,22 +200,22 @@ const GetStartedContainer: React.FC = () => {
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 pt-28 pb-12 md:pt-40 md:pb-32">
           <div className="text-left md:max-w-lg lg:max-w-xl">
-            <h1 className="text-5xl md:text-6xl font-semibold tracking-tight mb-4">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-semibold tracking-tight mb-4">
               <span className="text-foreground">Flow. Automate.</span>
               <br />
               <span className="text-transparent bg-clip-text bg-linear-to-r from-blue-600 via-indigo-600 to-purple-600">
                 Achieve More.
               </span>
             </h1>
-            <p className="text-xl text-muted-foreground mb-8 max-w-md">
+            <p className="text-lg sm:text-xl text-muted-foreground mb-8 max-w-md">
               The all-in-one workspace for project management, team chat,
               workflow automation, and AI-powered productivity. Replace 5 tools
               with one.
             </p>
-            <div className="flex flex-wrap gap-4">
+            <div className="flex flex-col sm:flex-row sm:flex-wrap gap-4">
               <Button
                 size="lg"
-                className="text-lg py-7 px-8 bg-linear-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-xl"
+                className="w-full sm:w-auto text-base sm:text-lg py-6 sm:py-7 px-8 bg-linear-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-xl"
                 onClick={() => goSignUp()}
               >
                 Start Free Trial <ArrowRight className="ml-2 h-5 w-5" />
@@ -223,7 +223,7 @@ const GetStartedContainer: React.FC = () => {
               <Button
                 size="lg"
                 variant="outline"
-                className="text-lg py-7 px-8"
+                className="w-full sm:w-auto text-base sm:text-lg py-6 sm:py-7 px-8"
                 onClick={() => scrollTo("features")}
               >
                 See Features
@@ -244,7 +244,7 @@ const GetStartedContainer: React.FC = () => {
         className="py-16 md:py-20 bg-background-secondary border-t border-border"
       >
         <div className="max-w-7xl mx-auto px-4">
-          <h2 className="text-3xl font-semibold text-center mb-4 text-foreground">
+          <h2 className="text-2xl sm:text-3xl font-semibold text-center mb-4 text-foreground">
             Everything Your Team Needs
           </h2>
           <p className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto">
@@ -299,7 +299,7 @@ const GetStartedContainer: React.FC = () => {
       {/* Pricing */}
       <section id="pricing" className="py-16 md:py-20 bg-background">
         <div className="max-w-7xl mx-auto px-4">
-          <h2 className="text-3xl font-semibold text-center mb-4 text-foreground">
+          <h2 className="text-2xl sm:text-3xl font-semibold text-center mb-4 text-foreground">
             Simple, Transparent Pricing
           </h2>
           <p className="text-center text-muted-foreground mb-8 max-w-2xl mx-auto">
@@ -335,7 +335,7 @@ const GetStartedContainer: React.FC = () => {
             </div>
           </div>
 
-          <div className="grid md:grid-cols-4 gap-6">
+          <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-6">
             {(plans.length > 0
               ? plans
               : ([
@@ -492,18 +492,18 @@ const GetStartedContainer: React.FC = () => {
         className="py-20 bg-linear-to-br from-blue-600 via-indigo-600 to-purple-600 text-white"
       >
         <div className="max-w-5xl mx-auto text-center px-4">
-          <h2 className="text-4xl md:text-5xl font-semibold mb-4 leading-tight">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-semibold mb-4 leading-tight">
             Stop Paying for 5 Tools.{" "}
             <span className="text-blue-200">Use One.</span>
           </h2>
-          <p className="text-xl text-blue-100 mb-10 max-w-3xl mx-auto">
+          <p className="text-lg sm:text-xl text-blue-100 mb-10 max-w-3xl mx-auto">
             SimpleFlow replaces your project manager, chat tool, automation
             engine, time tracker, and analytics dashboard — with an AI assistant
             that ties it all together.
           </p>
           <Button
             size="lg"
-            className="text-xl py-8 px-10 bg-white text-indigo-700 hover:bg-blue-50 shadow-2xl font-semibold"
+            className="w-full sm:w-auto text-lg sm:text-xl py-6 sm:py-8 px-8 sm:px-10 bg-white text-indigo-700 hover:bg-blue-50 shadow-2xl font-semibold"
             onClick={() => goSignUp()}
           >
             Create My Free Workspace{" "}

@@ -128,7 +128,7 @@ export function GanttChart({ columns, effectiveColumnColors, onViewTask }: Gantt
   }
 
   return (
-    <div className="flex-1 flex flex-col min-h-0">
+    <div className="h-full flex flex-col min-h-0">
       {/* Navigation */}
       <div className="flex items-center justify-between px-3 py-2 border-b">
         <div className="flex items-center gap-1">
@@ -149,7 +149,7 @@ export function GanttChart({ columns, effectiveColumnColors, onViewTask }: Gantt
 
       <div className="flex-1 flex min-h-0 overflow-hidden">
         {/* Task list (left) */}
-        <div className="w-52 shrink-0 border-r">
+        <div className="w-28 md:w-52 shrink-0 border-r">
           <div className="h-10 border-b bg-muted/50 flex items-center px-3">
             <span className="text-xs font-medium text-muted-foreground">Task</span>
           </div>
@@ -204,7 +204,7 @@ export function GanttChart({ columns, effectiveColumnColors, onViewTask }: Gantt
           </div>
 
           {/* Bars */}
-          <div style={{ minWidth: totalDays * DAY_WIDTH }}>
+          <div className="pb-6 md:pb-0" style={{ minWidth: totalDays * DAY_WIDTH }}>
             {visibleTasks.map((t) => {
               const { left, width } = getBarStyle(t);
               return (

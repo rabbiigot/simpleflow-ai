@@ -17,14 +17,14 @@ export default function NodePalette({
   const hasTrigger = workflow.trigger !== null;
 
   return (
-    <ScrollArea className="h-full">
+    <ScrollArea className="max-h-56 md:max-h-none md:h-full">
       <div className="space-y-4 p-3">
         {/* Triggers section */}
         <div>
           <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
             Triggers
           </h3>
-          <div className="grid gap-1.5">
+          <div className="grid grid-cols-2 gap-1.5 md:grid-cols-1">
             {TRIGGER_PALETTE.map((item) => {
               const Icon = NODE_ICONS[item.type];
               const disabled = hasTrigger;
@@ -55,7 +55,7 @@ export default function NodePalette({
           <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
             Actions
           </h3>
-          <div className="grid gap-1.5">
+          <div className="grid grid-cols-2 gap-1.5 md:grid-cols-1">
             {ACTION_PALETTE.map((item) => {
               const Icon = NODE_ICONS[item.type];
               return (

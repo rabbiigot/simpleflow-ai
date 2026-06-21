@@ -80,7 +80,7 @@ const DashboardContainer = () => {
     <div className="page-shell">
       <p className="section-label">Dashboard</p>
       <div className="section-stack mb-6">
-        <h1 className="text-3xl font-bold text-balance">
+        <h1 className="text-2xl md:text-3xl font-bold text-balance">
           {isFirstVisit ? "Welcome back!" : "Here's your overview"}
         </h1>
         <p className="mt-2 text-pretty text-muted-foreground">

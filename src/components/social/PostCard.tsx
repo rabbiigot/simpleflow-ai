@@ -155,7 +155,7 @@ export default function PostCard({
       {/* ------------------------------------------------------------ */}
       {/*  Header: avatar + author + timestamp + three-dot menu         */}
       {/* ------------------------------------------------------------ */}
-      <CardHeader className="pb-2">
+      <CardHeader className="px-3 pb-2 sm:px-6">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
             <button
@@ -227,7 +227,7 @@ export default function PostCard({
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-3 pt-0">
+      <CardContent className="space-y-3 px-3 pt-0 sm:px-6">
         {/* -------------------------------------------------------------- */}
         {/*  Content                                                        */}
         {/* -------------------------------------------------------------- */}

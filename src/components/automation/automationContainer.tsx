@@ -287,7 +287,7 @@ export default function AutomationContainer() {
       {/* Header */}
       <div className="mb-6">
         <p className="section-label mb-1">Automation</p>
-        <h1 className="text-3xl font-bold mb-2">My Workflows</h1>
+        <h1 className="text-2xl md:text-3xl font-bold mb-2">My Workflows</h1>
         <p className="text-muted-foreground text-pretty">
           Build automated workflows that trigger actions when events happen in
           your workspace.
@@ -362,12 +362,12 @@ export default function AutomationContainer() {
 
         {/* ---- Tab 1: My Automations ---- */}
         <TabsContent value="automations" className="space-y-4">
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="text-xl font-semibold">Your Automations</h2>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
               {workspaces.length > 0 && (
                 <Select value={filterWorkspaceId} onValueChange={(v) => { setFilterWorkspaceId(v); setCurrentPage(1); }}>
-                  <SelectTrigger className="h-9 w-[180px] text-xs">
+                  <SelectTrigger className="h-9 w-full sm:w-[180px] text-xs">
                     <Filter className="mr-1.5 h-3.5 w-3.5 text-muted-foreground" />
                     <SelectValue placeholder="Filter workspace" />
                   </SelectTrigger>
@@ -381,7 +381,7 @@ export default function AutomationContainer() {
                   </SelectContent>
                 </Select>
               )}
-              <Button className="gap-2" onClick={handleCreateNew}>
+              <Button className="gap-2 w-full sm:w-auto" onClick={handleCreateNew}>
                 <Plus className="h-4 w-4" />
                 Create Automation
               </Button>
@@ -406,8 +406,8 @@ export default function AutomationContainer() {
             </Card>
           ) : (
             <>
-              <div className="rounded-md border">
-                <Table>
+              <div className="rounded-md border overflow-x-auto">
+                <Table className="min-w-[640px]">
                   <TableHeader>
                     <TableRow>
                       <TableHead>Name</TableHead>

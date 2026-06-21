@@ -353,22 +353,22 @@ export default function EmailTemplateBuilder({
   return (
     <div className="space-y-3">
       {/* Header Bar */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" onClick={onBack} className="h-8 w-8">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="flex items-center gap-2 min-w-0">
+          <Button variant="ghost" size="icon" onClick={onBack} className="h-8 w-8 shrink-0">
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <LayoutTemplate className="h-5 w-5 text-muted-foreground" />
-          <h2 className="text-lg font-semibold">
+          <LayoutTemplate className="h-5 w-5 text-muted-foreground shrink-0" />
+          <h2 className="text-lg font-semibold truncate">
             {isEditing ? "Edit Template" : "Create Template"}
           </h2>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="default" className="px-4 py-2" onClick={() => setShowPreview(true)}>
+          <Button variant="outline" size="default" className="flex-1 sm:flex-none px-4 py-2" onClick={() => setShowPreview(true)}>
             <Eye className="h-4 w-4" />
             Preview
           </Button>
-          <Button size="default" className="px-4 py-2" onClick={handleSave} disabled={submitting}>
+          <Button size="default" className="flex-1 sm:flex-none px-4 py-2" onClick={handleSave} disabled={submitting}>
             {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
             {isEditing ? "Update" : "Save Template"}
           </Button>
@@ -398,7 +398,7 @@ export default function EmailTemplateBuilder({
       {/* ─── Top Menu Bar + Connected Panel + Canvas ── */}
       <div>
         {/* Menu bar — equal-width tabs spanning panel width */}
-        <div className="flex items-end w-80 relative">
+        <div className="flex items-end w-full md:w-80 relative">
           {MENU_TABS.map((tab, idx) => {
             const isActive = activeTab === tab.key;
             const isFirst = idx === 0;
@@ -452,7 +452,7 @@ export default function EmailTemplateBuilder({
         </div>
 
         {/* Panel + Canvas container — top border connects to active tab */}
-        <div className="border border-border rounded-b-lg rounded-tr-lg overflow-hidden flex" style={{ minHeight: "600px" }}>
+        <div className="border border-border rounded-b-lg rounded-tr-lg overflow-hidden flex flex-col md:flex-row" style={{ minHeight: "600px" }}>
 
           {/* Code fullscreen — takes over entire container */}
           {activeTab === "code" && codeFullscreen ? (
@@ -497,7 +497,7 @@ export default function EmailTemplateBuilder({
             <>
               {/* Panel content */}
               <div
-                className={`w-80 border-r shrink-0 flex flex-col ${
+                className={`w-full md:w-80 border-b md:border-b-0 md:border-r shrink-0 flex flex-col ${
                   activeTab === "code" ? "bg-[#1e1e1e]" : "bg-white"
                 }`}
               >
@@ -575,7 +575,7 @@ export default function EmailTemplateBuilder({
               {/* Canvas — gray email client bg with white card centered */}
               <div className="flex-1 overflow-auto bg-gray-100">
             <ScrollArea className="h-full" style={{ maxHeight: "600px" }}>
-              <div className="py-6 px-4">
+              <div className="py-4 px-2 md:py-6 md:px-4">
                 <div
                   className="mx-auto rounded-lg shadow"
                   style={{
