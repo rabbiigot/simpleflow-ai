@@ -2,7 +2,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { useKeyboardInset } from "@/hooks/use-keyboard-inset";
 import {
   Dialog,
   DialogContent,
@@ -42,7 +41,7 @@ import {
   Users,
   X,
 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { type CSSProperties, useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { getChannelIcon } from "./CreateChannelDialog";
 
@@ -72,13 +71,41 @@ export default function GroupChat({
   boardId,
   fillParent = false,
 }: Props) {
-  // On mobile, lift the whole chat above the on-screen keyboard (keeping its
-  // height) so the conversation stays visible and the input isn't covered.
-  // The chat container already sits ~72px above the screen bottom (bottom nav),
-  // so we only lift by the remaining amount.
-  const keyboardInset = useKeyboardInset();
-  const lift = fillParent && keyboardInset > 0 ? Math.max(0, keyboardInset - 72) : 0;
-  const liftStyle = lift > 0 ? { transform: `translateY(-${lift}px)` } : undefined;
+  // On mobile (workspace channel), when the keyboard opens, pin the chat to the
+  // visible area above it via the VisualViewport API. This keeps the whole
+  // conversation visible above the keyboard instead of shrinking/hiding it.
+  const [kbStyle, setKbStyle] = useState<CSSProperties | undefined>(undefined);
+  useEffect(() => {
+    if (!fillParent) return;
+    const vv = typeof window !== "undefined" ? window.visualViewport : null;
+    if (!vv) return;
+    const update = () => {
+      const isMobile = window.matchMedia("(max-width: 767px)").matches;
+      const keyboardHeight = window.innerHeight - vv.height;
+      if (isMobile && keyboardHeight > 120) {
+        // Keyboard is open — overlay the chat onto the visible viewport.
+        setKbStyle({
+          position: "fixed",
+          left: 0,
+          right: 0,
+          top: vv.offsetTop,
+          height: vv.height,
+          zIndex: 60,
+          borderRadius: 0,
+        });
+      } else {
+        setKbStyle(undefined);
+      }
+    };
+    update();
+    vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update);
+    return () => {
+      vv.removeEventListener("resize", update);
+      vv.removeEventListener("scroll", update);
+    };
+  }, [fillParent]);
+
   const [messages, setMessages] = useState<ChatMessageData[]>([]);
   const [draft, setDraft] = useState("");
   const [isLoading, setIsLoading] = useState(true);
@@ -283,11 +310,13 @@ export default function GroupChat({
 
   return (
     <Card
-      style={liftStyle}
-      className={`flex flex-col gap-0 overflow-hidden py-0 transition-transform duration-200 ${
-        fillParent
-          ? "h-full"
-          : "h-[calc(100dvh-15rem-env(safe-area-inset-bottom))] md:h-[calc(100vh-14rem)]"
+      style={kbStyle}
+      className={`flex flex-col gap-0 overflow-hidden py-0 ${
+        kbStyle
+          ? ""
+          : fillParent
+            ? "h-full"
+            : "h-[calc(100dvh-15rem-env(safe-area-inset-bottom))] md:h-[calc(100vh-14rem)]"
       }`}
     >
       {/* ---- Header ---- */}

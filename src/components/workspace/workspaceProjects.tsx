@@ -1193,9 +1193,14 @@ export default function WorkspaceProjects() {
   }
 
   return (
-    <div className="mx-2 flex h-[calc(100dvh-8rem-env(safe-area-inset-bottom))] flex-col space-y-3 md:h-[calc(100vh-4rem)]">
-      {/* Row 1: Back + Title + Description below */}
-      <div className="flex flex-col gap-3 md:flex-row md:items-start" data-tour="workspace-header">
+    <div className="mx-2 flex h-[calc(100dvh-7.5rem-env(safe-area-inset-bottom))] flex-col space-y-3 md:h-[calc(100vh-4rem)]">
+      {/* Row 1: Back + Title + Description below (hidden on mobile in the channel tab to give the chat more height) */}
+      <div
+        className={`flex flex-col gap-3 md:flex-row md:items-start ${
+          projectTab === "channel" ? "max-md:hidden" : ""
+        }`}
+        data-tour="workspace-header"
+      >
         <Button
           variant="ghost"
           size="sm"
