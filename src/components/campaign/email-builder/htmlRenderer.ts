@@ -162,12 +162,34 @@ function renderSectionHtml(section: EmailSection, globalStyles: GlobalStyles): s
 </tr>`;
 }
 
+/** True if the string looks like a complete HTML document (not a fragment). */
+export function isFullHtmlDocument(html: string): boolean {
+  return /<!doctype html|<html[\s>]/i.test(html || "");
+}
+
+/**
+ * If the template is a single "code" block containing a full HTML document
+ * (i.e. the user pasted a complete email), return that document untouched so
+ * it is rendered/sent exactly as provided. Otherwise null.
+ */
+export function customDocumentHtml(sections: EmailSection[]): string | null {
+  const blocks = sections.flatMap((s) => s.rows.flatMap((r) => r.blocks));
+  if (blocks.length === 1 && blocks[0].type === "code") {
+    const html = blocks[0].content.html || "";
+    if (isFullHtmlDocument(html)) return html;
+  }
+  return null;
+}
+
 /** Email body HTML — gray bg with centered white card containing all sections.
  *  Used for preview modal and dangerouslySetInnerHTML rendering. */
 export function renderPreviewHtml(
   sections: EmailSection[],
   globalStyles: GlobalStyles,
 ): string {
+  const custom = customDocumentHtml(sections);
+  if (custom) return custom;
+
   const sectionsHtml = sections
     .map((s) => renderSectionHtml(s, globalStyles))
     .filter(Boolean)
@@ -194,6 +216,9 @@ export function renderFullHtml(
   subject: string,
   preheader: string,
 ): string {
+  const custom = customDocumentHtml(sections);
+  if (custom) return custom;
+
   const sectionsHtml = sections
     .map((s) => renderSectionHtml(s, globalStyles))
     .filter(Boolean)

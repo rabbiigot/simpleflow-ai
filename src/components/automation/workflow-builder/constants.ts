@@ -5,12 +5,14 @@ import {
   CheckCircle,
   Clock3,
   Edit,
+  GitBranch,
   ListTodo,
   type LucideIcon,
   Mail,
   MessageSquare,
   Plus,
   Share2,
+  Split,
   Timer,
 } from "lucide-react";
 import type { PaletteItem } from "./types";
@@ -34,6 +36,20 @@ export const ACTION_PALETTE: PaletteItem[] = [
   { type: "CREATE_TASK", label: "Create Task", kind: "action" },
   { type: "MOVE_TASK", label: "Move Task", kind: "action" },
 ];
+
+// ---- Logic (branch) palette items ----
+
+export const LOGIC_PALETTE: PaletteItem[] = [
+  { type: "IF_ELSE", label: "IF / ELSE", kind: "ifElse" },
+  { type: "SWITCH", label: "Switch", kind: "switch" },
+];
+
+// ---- Branch node icons / colors ----
+
+export const LOGIC_ICONS: Record<"ifElse" | "switch", LucideIcon> = {
+  ifElse: GitBranch,
+  switch: Split,
+};
 
 // ---- Icon map ----
 

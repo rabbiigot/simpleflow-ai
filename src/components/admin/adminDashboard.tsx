@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/table";
 import {
   Building2,
+  MessageSquare,
   ChevronLeft,
   ChevronRight,
   LogOut,
@@ -22,6 +23,7 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { AdminOrganizations } from "./adminOrganizations";
+import { AdminFeedback } from "./adminFeedback";
 
 const API_BASE =
   import.meta.env.VITE_API_BASE_URL?.trim() || "http://localhost:3000";
@@ -54,7 +56,7 @@ type Props = {
 };
 
 export function AdminDashboard({ token, onLogout }: Props) {
-  const [view, setView] = useState<"organizations" | "users">("organizations");
+  const [view, setView] = useState<"organizations" | "users" | "feedback">("organizations");
   const [users, setUsers] = useState<User[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -228,6 +230,15 @@ export function AdminDashboard({ token, onLogout }: Props) {
                 <Users className="mr-2 h-4 w-4" />
                 Accounts
               </Button>
+              <Button
+                variant={view === "feedback" ? "default" : "ghost"}
+                size="sm"
+                className="flex-1 md:flex-none"
+                onClick={() => setView("feedback")}
+              >
+                <MessageSquare className="mr-2 h-4 w-4" />
+                Feedback
+              </Button>
             </div>
             <Button variant="outline" size="sm" onClick={onLogout}>
               <LogOut className="mr-2 h-4 w-4" />
@@ -239,6 +250,8 @@ export function AdminDashboard({ token, onLogout }: Props) {
 
       {view === "organizations" ? (
         <AdminOrganizations token={token} onLogout={onLogout} />
+      ) : view === "feedback" ? (
+        <AdminFeedback token={token} onLogout={onLogout} />
       ) : (
       /* Content */
       <div className="mx-auto max-w-7xl px-4 py-6 md:px-6">

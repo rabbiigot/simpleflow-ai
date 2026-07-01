@@ -3,32 +3,49 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textArea";
-import type {
-  AutomationActionType,
-  AutomationData,
-  AutomationTriggerType,
-  ConditionLogicGate,
-  ConditionOperator,
+import {
+  testRunAutomation,
+  type AutomationActionType,
+  type AutomationData,
+  type AutomationTriggerType,
+  type ConditionLogicGate,
+  type ConditionOperator,
 } from "@/lib/backend-api";
-import { Save } from "lucide-react";
-import { useCallback, useState } from "react";
+import { Loader2, Play, Save } from "lucide-react";
+import { useCallback, useMemo, useState } from "react";
 import ActionConfigPanel from "./ActionConfigPanel";
+import FlowCanvas from "./canvas/FlowCanvas";
+import type { RunStatus } from "./canvas/CustomNodes";
+import {
+  autoLayout,
+  COL_GAP,
+  deserializeGraph,
+  getTriggerNode,
+  graphToSavePayload,
+  makeNode,
+  outputHandles,
+  uid,
+} from "./graph";
+import IfElseConfigPanel from "./IfElseConfigPanel";
 import NodePalette from "./NodePalette";
+import SwitchConfigPanel from "./SwitchConfigPanel";
 import TriggerConfigPanel from "./TriggerConfigPanel";
 import type {
   ActionNodeData,
-  ConditionNodeData,
+  IfElseNodeData,
   PaletteItem,
   SelectedNode,
+  SwitchNodeData,
   TriggerNodeData,
-  WorkflowState,
+  WorkflowEdge,
+  WorkflowGraph,
+  WorkflowNode,
+  XY,
 } from "./types";
-import WorkflowCanvas from "./WorkflowCanvas";
+import { toast } from "sonner";
 
 type WorkflowBuilderProps = {
-  /** If editing an existing automation, pass it here. */
   initial?: AutomationData | null;
-  /** Called on save with the workflow data for the parent to persist. */
   onSave: (data: {
     name: string;
     description: string;
@@ -49,207 +66,316 @@ type WorkflowBuilderProps = {
   saving?: boolean;
 };
 
-function uid() {
-  return crypto.randomUUID();
-}
-
-function buildInitialState(initial?: AutomationData | null): {
-  name: string;
-  description: string;
-  workflow: WorkflowState;
-} {
-  if (!initial) {
-    return { name: "", description: "", workflow: { trigger: null, actions: [], conditions: [] } };
-  }
-  return {
-    name: initial.name,
-    description: initial.description ?? "",
-    workflow: {
-      trigger: initial.trigger
-        ? {
-            id: initial.trigger.id,
-            type: initial.trigger.type,
-            config: initial.trigger.config ?? {},
-          }
-        : null,
-      actions: initial.actions.map((a) => ({
-        id: a.id,
-        type: a.type,
-        config: a.config ?? {},
-        sortOrder: a.sortOrder,
-      })),
-      conditions: (initial.conditions ?? []).map((c) => ({
-        id: c.id ?? uid(),
-        field: c.field,
-        operator: c.operator,
-        value: c.value ?? "",
-        logicGate: c.logicGate,
-        sortOrder: c.sortOrder,
-      })),
-    },
-  };
-}
-
 export default function WorkflowBuilder({
   initial,
   onSave,
   saving,
 }: WorkflowBuilderProps) {
-  const init = buildInitialState(initial);
-  const [name, setName] = useState(init.name);
-  const [description, setDescription] = useState(init.description);
-  const [workflow, setWorkflow] = useState<WorkflowState>(init.workflow);
+  const [name, setName] = useState(initial?.name ?? "");
+  const [description, setDescription] = useState(initial?.description ?? "");
+  const [graph, setGraph] = useState<WorkflowGraph>(() =>
+    deserializeGraph(initial),
+  );
   const [selectedNode, setSelectedNode] = useState<SelectedNode | null>(null);
+  // When set, the next palette pick is inserted into this edge instead of appended.
+  const [insertEdge, setInsertEdge] = useState<WorkflowEdge | null>(null);
+  // Test run: live per-node state while the trace replays across the canvas.
+  const [testing, setTesting] = useState(false);
+  const [runState, setRunState] = useState<Map<string, RunStatus>>(new Map());
 
-  // ---- Palette handlers ----
+  const triggerNode = getTriggerNode(graph);
+  const hasTrigger = !!triggerNode;
 
-  const handleAddTrigger = useCallback((item: PaletteItem) => {
-    const newTrigger: TriggerNodeData = {
-      id: uid(),
-      type: item.type as AutomationTriggerType,
-      config: {},
-    };
-    setWorkflow((prev) => ({ ...prev, trigger: newTrigger }));
-    setSelectedNode({ kind: "trigger", id: newTrigger.id });
-  }, []);
+  // ---- Graph helpers ----------------------------------------------------
 
-  const handleAddAction = useCallback((item: PaletteItem) => {
-    setWorkflow((prev) => {
-      const newAction: ActionNodeData = {
-        id: uid(),
-        type: item.type as AutomationActionType,
-        config: {},
-        sortOrder: prev.actions.length,
-      };
-      return { ...prev, actions: [...prev.actions, newAction] };
-    });
-  }, []);
-
-  // ---- Canvas handlers ----
-
-  const handleRemoveTrigger = useCallback(() => {
-    setWorkflow((prev) => ({ ...prev, trigger: null }));
-    setSelectedNode(null);
-  }, []);
-
-  const handleRemoveAction = useCallback(
-    (id: string) => {
-      setWorkflow((prev) => ({
-        ...prev,
-        actions: prev.actions
-          .filter((a) => a.id !== id)
-          .map((a, i) => ({ ...a, sortOrder: i })),
+  const updateNodeData = useCallback(
+    (id: string, patch: Partial<WorkflowNode["data"]>) => {
+      setGraph((g) => ({
+        ...g,
+        nodes: g.nodes.map((n) =>
+          n.data.id === id
+            ? ({ ...n, data: { ...n.data, ...patch } } as WorkflowNode)
+            : n,
+        ),
       }));
-      if (selectedNode?.kind === "action" && selectedNode.id === id) {
-        setSelectedNode(null);
+    },
+    [],
+  );
+
+  /** Find the open end of the main path (first output handle that has no edge). */
+  const findTail = useCallback(
+    (g: WorkflowGraph): { node: WorkflowNode; handle: string } | null => {
+      const trigger = getTriggerNode(g);
+      if (!trigger) return null;
+      let cur: WorkflowNode = trigger;
+      const visited = new Set<string>();
+      while (!visited.has(cur.data.id)) {
+        visited.add(cur.data.id);
+        const handle = outputHandles(cur)[0];
+        const edge = g.edges.find(
+          (e) => e.source === cur.data.id && e.sourceHandle === handle,
+        );
+        if (!edge) return { node: cur, handle };
+        const next = g.nodes.find((n) => n.data.id === edge.target);
+        if (!next) return { node: cur, handle };
+        cur = next;
       }
-    },
-    [selectedNode],
-  );
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleInsertActionAt = useCallback((_index: number) => {
-    // When clicking the "+" button, we show the palette for the user to pick
-    // For simplicity, no-op: clicking a palette action already appends it.
-  }, []);
-
-  // ---- Config panel handlers ----
-
-  const handleTriggerConfigChange = useCallback(
-    (updated: TriggerNodeData) => {
-      setWorkflow((prev) => ({ ...prev, trigger: updated }));
+      return { node: cur, handle: outputHandles(cur)[0] };
     },
     [],
   );
 
-  const handleActionConfigChange = useCallback(
-    (updated: ActionNodeData) => {
-      setWorkflow((prev) => ({
-        ...prev,
-        actions: prev.actions.map((a) => (a.id === updated.id ? updated : a)),
+  // ---- Add node (palette click or drop) ---------------------------------
+
+  const addNode = useCallback(
+    (item: PaletteItem, position?: XY) => {
+      if (item.kind === "trigger") {
+        if (hasTrigger) {
+          toast.info("Only one trigger is allowed per automation.");
+          return;
+        }
+        const node = makeNode("trigger", item.type, position ?? { x: 0, y: 0 });
+        setGraph((g) => ({ ...g, nodes: [...g.nodes, node] }));
+        setSelectedNode({ kind: "trigger", id: node.data.id });
+        return;
+      }
+
+      if (!hasTrigger) {
+        toast.info("Add a trigger first.");
+        return;
+      }
+
+      setGraph((g) => {
+        const tail = findTail(g);
+        const pos =
+          position ??
+          (tail?.node.data.position
+            ? { x: tail.node.data.position.x + COL_GAP, y: tail.node.data.position.y }
+            : { x: COL_GAP, y: 0 });
+        const node = makeNode(item.kind, item.type, pos);
+
+        // Insert mode: split the targeted edge.
+        if (insertEdge) {
+          const edges = g.edges.filter((e) => e.id !== insertEdge.id);
+          edges.push({
+            id: uid(),
+            source: insertEdge.source,
+            sourceHandle: insertEdge.sourceHandle,
+            target: node.data.id,
+          });
+          edges.push({
+            id: uid(),
+            source: node.data.id,
+            sourceHandle: outputHandles(node)[0],
+            target: insertEdge.target,
+          });
+          setSelectedNode({ kind: item.kind, id: node.data.id });
+          return { nodes: [...g.nodes, node], edges };
+        }
+
+        // Append to the open tail of the main path (when there is one).
+        const edges = [...g.edges];
+        if (!position && tail) {
+          edges.push({
+            id: uid(),
+            source: tail.node.data.id,
+            sourceHandle: tail.handle,
+            target: node.data.id,
+          });
+        }
+        setSelectedNode({ kind: item.kind, id: node.data.id });
+        return { nodes: [...g.nodes, node], edges };
+      });
+      setInsertEdge(null);
+    },
+    [hasTrigger, insertEdge, findTail],
+  );
+
+  // ---- Canvas callbacks -------------------------------------------------
+
+  const handleConnect = useCallback(
+    (c: { source: string; sourceHandle?: string; target: string }) => {
+      if (c.source === c.target) return;
+      setGraph((g) => {
+        // Fan-out is allowed: a single handle may connect to many targets.
+        // Only block an exact duplicate edge (same source handle → same target).
+        const handle = c.sourceHandle ?? "out";
+        const exists = g.edges.some(
+          (e) =>
+            e.source === c.source &&
+            (e.sourceHandle ?? "out") === handle &&
+            e.target === c.target,
+        );
+        if (exists) return g;
+        return {
+          ...g,
+          edges: [
+            ...g.edges,
+            { id: uid(), source: c.source, sourceHandle: c.sourceHandle, target: c.target },
+          ],
+        };
+      });
+    },
+    [],
+  );
+
+  const handleDeleteNode = useCallback(
+    (id: string) => {
+      setGraph((g) => ({
+        nodes: g.nodes.filter((n) => n.data.id !== id),
+        edges: g.edges.filter((e) => e.source !== id && e.target !== id),
       }));
+      setSelectedNode((s) => (s?.id === id ? null : s));
     },
     [],
   );
 
-  // ---- Find selected node data ----
+  const handleMoveNode = useCallback(
+    (id: string, pos: XY) => updateNodeData(id, { position: pos }),
+    [updateNodeData],
+  );
 
-  const selectedTrigger =
-    selectedNode?.kind === "trigger" && workflow.trigger?.id === selectedNode.id
-      ? workflow.trigger
-      : null;
-
-  const selectedAction =
-    selectedNode?.kind === "action"
-      ? workflow.actions.find((a) => a.id === selectedNode.id) ?? null
-      : null;
-
-  // ---- Save handler ----
-
-  // ---- Condition handlers ----
-
-  const handleAddCondition = useCallback(() => {
-    const newCondition: ConditionNodeData = {
-      id: uid(),
-      field: "",
-      operator: "EQUALS" as ConditionOperator,
-      value: "",
-      logicGate: "AND" as ConditionLogicGate,
-      sortOrder: workflow.conditions.length,
-    };
-    setWorkflow((prev) => ({
-      ...prev,
-      conditions: [...prev.conditions, newCondition],
-    }));
-  }, [workflow.conditions.length]);
-
-  const handleUpdateCondition = useCallback((updated: ConditionNodeData) => {
-    setWorkflow((prev) => ({
-      ...prev,
-      conditions: prev.conditions.map((c) =>
-        c.id === updated.id ? updated : c,
-      ),
-    }));
+  const handleInsertBetween = useCallback((edge: WorkflowEdge) => {
+    setInsertEdge(edge);
+    toast.info("Pick a node from the palette to insert it here.");
   }, []);
 
-  const handleRemoveCondition = useCallback((id: string) => {
-    setWorkflow((prev) => ({
-      ...prev,
-      conditions: prev.conditions
-        .filter((c) => c.id !== id)
-        .map((c, i) => ({ ...c, sortOrder: i })),
-    }));
+  const handleDeleteEdge = useCallback((edgeId: string) => {
+    setGraph((g) => ({ ...g, edges: g.edges.filter((e) => e.id !== edgeId) }));
   }, []);
+
+  const handleReconnectEdge = useCallback(
+    (
+      oldEdgeId: string,
+      next: { source: string; sourceHandle?: string; target: string },
+    ) => {
+      if (next.source === next.target) return;
+      setGraph((g) => {
+        const handle = next.sourceHandle ?? "out";
+        const edges = g.edges.filter((e) => e.id !== oldEdgeId);
+        const dup = edges.some(
+          (e) =>
+            e.source === next.source &&
+            (e.sourceHandle ?? "out") === handle &&
+            e.target === next.target,
+        );
+        if (!dup) {
+          edges.push({
+            id: uid(),
+            source: next.source,
+            sourceHandle: next.sourceHandle,
+            target: next.target,
+          });
+        }
+        return { ...g, edges };
+      });
+    },
+    [],
+  );
+
+  const handleTidy = useCallback(() => setGraph((g) => autoLayout(g)), []);
+
+  // ---- Test run ---------------------------------------------------------
+  // Dry-runs the current (unsaved) graph, then replays the returned trace
+  // block-by-block: each node lights up "running", then turns success/failed.
+
+  const handleTestRun = useCallback(async () => {
+    if (testing) return;
+    if (!hasTrigger) {
+      toast.info("Add a trigger first.");
+      return;
+    }
+    const payload = graphToSavePayload(graph);
+    if (!payload.trigger) {
+      toast.info("Add a trigger first.");
+      return;
+    }
+    if (payload.actions.length === 0) {
+      toast.info("Add at least one action to test.");
+      return;
+    }
+
+    const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+    setTesting(true);
+    setRunState(new Map());
+    try {
+      const result = await testRunAutomation({
+        trigger: payload.trigger,
+        actions: payload.actions,
+        conditions:
+          payload.conditions.length > 0 ? payload.conditions : undefined,
+        payload: {},
+      });
+
+      // Replay each executed block in order.
+      for (const step of result.steps) {
+        setRunState((prev) => new Map(prev).set(step.nodeId, "running"));
+        await sleep(650);
+        setRunState((prev) =>
+          new Map(prev).set(
+            step.nodeId,
+            step.status === "failed" ? "failed" : "success",
+          ),
+        );
+        if (step.status === "failed") break;
+        await sleep(140);
+      }
+
+      if (result.success) {
+        toast.success(result.message || "Test run completed successfully.");
+      } else {
+        toast.error(result.error || result.message || "Test run failed.");
+      }
+
+      // Return the canvas to its normal look after a beat.
+      window.setTimeout(() => setRunState(new Map()), 2600);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to run test.");
+      setRunState(new Map());
+    } finally {
+      setTesting(false);
+    }
+  }, [graph, hasTrigger, testing]);
+
+  // ---- Validation (red rings) ------------------------------------------
+
+  const invalidIds = useMemo(() => {
+    const set = new Set<string>();
+    const hasIncoming = (id: string) => graph.edges.some((e) => e.target === id);
+    for (const n of graph.nodes) {
+      if (n.kind === "trigger") continue;
+      if (!hasIncoming(n.data.id)) set.add(n.data.id);
+      if (n.kind === "switch" && !n.data.field.trim()) set.add(n.data.id);
+      if (n.kind === "action" && !isActionConfigured(n.data)) set.add(n.data.id);
+    }
+    return set;
+  }, [graph]);
+
+  // ---- Selected node lookups -------------------------------------------
+
+  const selected = selectedNode
+    ? graph.nodes.find((n) => n.data.id === selectedNode.id)
+    : undefined;
+
+  // ---- Save -------------------------------------------------------------
+
+  const canSave = name.trim().length > 0 && hasTrigger;
 
   function handleSave() {
+    const payload = graphToSavePayload(graph);
     onSave({
       name: name.trim(),
       description: description.trim(),
-      trigger: workflow.trigger
-        ? { type: workflow.trigger.type, config: workflow.trigger.config }
-        : undefined,
-      actions: workflow.actions.map((a) => ({
-        type: a.type,
-        config: a.config,
-        sortOrder: a.sortOrder,
-      })),
-      conditions: workflow.conditions.length > 0
-        ? workflow.conditions.map((c) => ({
-            field: c.field,
-            operator: c.operator,
-            value: c.value || undefined,
-            logicGate: c.logicGate,
-            sortOrder: c.sortOrder,
-          }))
-        : undefined,
+      trigger: payload.trigger,
+      actions: payload.actions,
+      conditions: payload.conditions.length > 0 ? payload.conditions : undefined,
     });
   }
 
-  const canSave = name.trim().length > 0 && workflow.trigger !== null;
-
   return (
     <div className="flex h-full flex-col">
-      {/* Top bar: name, description, save */}
+      {/* Top bar */}
       <div className="flex flex-wrap items-end gap-3 border-b px-3 py-3 md:gap-4 md:px-4">
         <div className="flex-1 min-w-full md:min-w-[200px] space-y-1">
           <Label htmlFor="automation-name" className="text-xs">
@@ -276,8 +402,22 @@ export default function WorkflowBuilder({
           />
         </div>
         <Button
+          type="button"
+          variant="outline"
+          onClick={handleTestRun}
+          disabled={!hasTrigger || testing || saving}
+          className="gap-2 w-full md:w-auto"
+        >
+          {testing ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Play className="h-4 w-4" />
+          )}
+          {testing ? "Testing..." : "Test run"}
+        </Button>
+        <Button
           onClick={handleSave}
-          disabled={!canSave || saving}
+          disabled={!canSave || saving || testing}
           className="gap-2 w-full md:w-auto"
         >
           <Save className="h-4 w-4" />
@@ -287,48 +427,64 @@ export default function WorkflowBuilder({
 
       {/* 3-panel layout */}
       <div className="flex flex-1 min-h-0 flex-col md:flex-row">
-        {/* Left panel: Node palette */}
+        {/* Palette */}
         <aside className="w-full shrink-0 border-b md:w-56 md:border-b-0 md:border-r">
           <NodePalette
-            workflow={workflow}
-            onAddTrigger={handleAddTrigger}
-            onAddAction={handleAddAction}
+            hasTrigger={hasTrigger}
+            insertMode={!!insertEdge}
+            onCancelInsert={() => setInsertEdge(null)}
+            onAdd={(item) => addNode(item)}
           />
         </aside>
 
-        {/* Center panel: Canvas */}
-        <main className="min-h-[320px] flex-1 min-w-0 overflow-auto bg-muted/30">
-          <WorkflowCanvas
-            workflow={workflow}
-            selectedNode={selectedNode}
-            onSelectNode={setSelectedNode}
-            onRemoveTrigger={handleRemoveTrigger}
-            onRemoveAction={handleRemoveAction}
-            onInsertActionAt={handleInsertActionAt}
+        {/* Canvas */}
+        <main className="min-h-[420px] flex-1 min-w-0">
+          <FlowCanvas
+            graph={graph}
+            selectedId={selectedNode?.id ?? null}
+            invalidIds={invalidIds}
+            runState={runState}
+            onSelect={setSelectedNode}
+            onMoveNode={handleMoveNode}
+            onDeleteNode={handleDeleteNode}
+            onConnect={handleConnect}
+            onInsertBetween={handleInsertBetween}
+            onDeleteEdge={handleDeleteEdge}
+            onReconnectEdge={handleReconnectEdge}
+            onDropNode={(item, pos) => addNode(item, pos)}
+            onTidy={handleTidy}
           />
         </main>
 
-        {/* Right panel: Config */}
+        {/* Config */}
         <aside className="w-full shrink-0 border-t md:w-72 md:border-t-0 md:border-l overflow-hidden">
           <ScrollArea className="h-full max-h-full">
-            {selectedTrigger && (
+            {selected?.kind === "trigger" && (
               <TriggerConfigPanel
-                node={selectedTrigger}
-                onChange={handleTriggerConfigChange}
-                conditions={workflow.conditions}
-                onAddCondition={handleAddCondition}
-                onUpdateCondition={handleUpdateCondition}
-                onRemoveCondition={handleRemoveCondition}
+                node={selected.data as TriggerNodeData}
+                onChange={(u) => updateNodeData(u.id, u)}
               />
             )}
-            {selectedAction && (
+            {selected?.kind === "action" && (
               <ActionConfigPanel
-                node={selectedAction}
-                trigger={workflow.trigger}
-                onChange={handleActionConfigChange}
+                node={selected.data as ActionNodeData}
+                trigger={(triggerNode?.data as TriggerNodeData) ?? null}
+                onChange={(u) => updateNodeData(u.id, u)}
               />
             )}
-            {!selectedTrigger && !selectedAction && (
+            {selected?.kind === "ifElse" && (
+              <IfElseConfigPanel
+                node={selected.data as IfElseNodeData}
+                onChange={(u) => updateNodeData(u.id, u)}
+              />
+            )}
+            {selected?.kind === "switch" && (
+              <SwitchConfigPanel
+                node={selected.data as SwitchNodeData}
+                onChange={(u) => updateNodeData(u.id, u)}
+              />
+            )}
+            {!selected && (
               <div className="flex h-full items-center justify-center p-6 text-center">
                 <p className="text-sm text-muted-foreground">
                   Select a node on the canvas to configure it.
@@ -340,4 +496,19 @@ export default function WorkflowBuilder({
       </div>
     </div>
   );
+}
+
+function isActionConfigured(node: ActionNodeData): boolean {
+  switch (node.type) {
+    case "SEND_EMAIL":
+      return !!(node.config?.to as string);
+    case "CREATE_POST":
+      return !!(node.config?.content as string);
+    case "CREATE_TASK":
+      return !!(node.config?.taskTitle as string) && !!(node.config?.workspaceId as string);
+    case "MOVE_TASK":
+      return !!(node.config?.targetColumn as string) && !!(node.config?.workspaceId as string);
+    default:
+      return true;
+  }
 }

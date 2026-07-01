@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { BarChart3, Bell, LogOut, Megaphone, Settings, Workflow } from "lucide-react";
+import { BarChart3, Bell, LogOut, Megaphone, MessageSquarePlus, Settings, Workflow } from "lucide-react";
 import logoOnly from "@/assets/logoOnly.png";
 import nameLogo from "@/assets/namelogo.png";
 import nameLogoWhite from "@/assets/namelogo-white.svg";
@@ -17,6 +17,7 @@ import { usePlanEntitlements } from "@/hooks/use-plan-entitlements";
 import { setTheme } from "@/lib/theme";
 import { PROFILE_STORAGE_KEY, useAuthStore } from "@/store/auth-store";
 import { useNavigate } from "@tanstack/react-router";
+import FeedbackDialog from "@/components/layout/FeedbackDialog";
 
 type MobileTopBarProps = {
   onNotifClick: () => void;
@@ -50,6 +51,7 @@ const MobileTopBar: React.FC<MobileTopBarProps> = ({
   const entitlements = usePlanEntitlements();
 
   const [isDark, setIsDark] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
   const [profile, setProfile] = useState<ProfileData>({
     firstName: "",
     lastName: "",
@@ -177,6 +179,15 @@ const MobileTopBar: React.FC<MobileTopBarProps> = ({
                   {profile.email}
                 </span>
               )}
+              {entitlements?.status === "TRIALING" &&
+                entitlements?.trialDaysLeft != null && (
+                  <span className="mt-1 inline-flex w-fit items-center rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-semibold text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300">
+                    {entitlements.name} trial ·{" "}
+                    {entitlements.trialDaysLeft > 0
+                      ? `${entitlements.trialDaysLeft} day${entitlements.trialDaysLeft === 1 ? "" : "s"} left`
+                      : "expired"}
+                  </span>
+                )}
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem
@@ -190,6 +201,10 @@ const MobileTopBar: React.FC<MobileTopBarProps> = ({
             <DropdownMenuItem onClick={() => navigate({ to: "/insights" })}>
               <BarChart3 className="h-4 w-4" />
               Analytics
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setShowFeedback(true)}>
+              <MessageSquarePlus className="h-4 w-4" />
+              Write Feedback
             </DropdownMenuItem>
             {showAutomation && (
               <DropdownMenuItem onClick={() => navigate({ to: "/automation" })}>
@@ -211,6 +226,8 @@ const MobileTopBar: React.FC<MobileTopBarProps> = ({
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      <FeedbackDialog open={showFeedback} onOpenChange={setShowFeedback} />
     </header>
   );
 };

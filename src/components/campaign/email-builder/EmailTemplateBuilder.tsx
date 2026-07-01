@@ -58,7 +58,7 @@ import {
 import BlockPalette from "./BlockPalette";
 import StylePanel from "./StylePanel";
 import CanvasBlock from "./CanvasBlock";
-import { renderFullHtml, renderPreviewHtml } from "./htmlRenderer";
+import { isFullHtmlDocument, renderFullHtml, renderPreviewHtml } from "./htmlRenderer";
 import {
   createBlock,
   createRow,
@@ -319,6 +319,23 @@ export default function EmailTemplateBuilder({
     setCodeValue(fullHtml);
   }, [fullHtml]);
 
+  // Apply the Code-tab HTML as the template: a single "code" block holding the
+  // pasted markup. Full HTML documents render via iframe in the canvas/preview.
+  const applyCustomHtml = useCallback(() => {
+    const html = codeValue.trim();
+    if (!html) {
+      toast.error("Paste some HTML first");
+      return;
+    }
+    const block = createBlock("code");
+    block.content = { html };
+    const section = createSection("Custom HTML");
+    section.rows = [createRow(1, [block])];
+    setSections([section]);
+    setActiveTab("blocks");
+    toast.success("HTML applied — preview updated");
+  }, [codeValue]);
+
   // ─── Save ─────────────────────────────────────────
 
   const handleSave = async () => {
@@ -513,6 +530,15 @@ export default function EmailTemplateBuilder({
                       <div className="flex items-center gap-0.5">
                         <Button
                           variant="ghost"
+                          size="sm"
+                          className="h-6 px-2 text-[10px] font-semibold text-emerald-400 hover:text-emerald-300 hover:bg-[#3c3c3c]"
+                          onClick={applyCustomHtml}
+                          title="Apply this HTML as the template"
+                        >
+                          Apply
+                        </Button>
+                        <Button
+                          variant="ghost"
                           size="icon"
                           className="h-6 w-6 text-[#858585] hover:text-[#cccccc] hover:bg-[#3c3c3c]"
                           onClick={() => {
@@ -701,11 +727,36 @@ export default function EmailTemplateBuilder({
 
           {/* Email content — gray bg with centered white card */}
           <div className="flex-1 overflow-auto min-h-0">
-            <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(previewHtml, {
+            {isFullHtmlDocument(previewHtml) ? (
+              <iframe
+                title="Email preview"
+                srcDoc={previewHtml}
+                sandbox="allow-same-origin"
+                onLoad={(e) => {
+                  const f = e.currentTarget;
+                  try {
+                    const doc = f.contentDocument;
+                    if (doc) {
+                      f.style.height =
+                        Math.max(
+                          doc.documentElement.scrollHeight,
+                          doc.body?.scrollHeight ?? 0,
+                        ) + "px";
+                    }
+                  } catch {
+                    /* cross-origin guard */
+                  }
+                }}
+                className="block w-full"
+                style={{ border: 0, minHeight: 480, background: "#fff" }}
+              />
+            ) : (
+              <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(previewHtml, {
   ALLOWED_TAGS: ["div", "p", "span", "a", "img", "h1", "h2", "h3", "h4", "h5", "h6", "b", "i", "u", "em", "strong", "br", "table", "tr", "td", "th", "hr", "thead", "tbody"],
   ALLOWED_ATTR: ["href", "src", "alt", "style", "class", "width", "height", "cellpadding", "cellspacing", "border", "align"],
   ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto):|[^a-z]|[a-z+.-]+(?:[^a-z+.:-]|$))/i,
 }) }} />
+            )}
           </div>
 
           {/* Send Test Email */}

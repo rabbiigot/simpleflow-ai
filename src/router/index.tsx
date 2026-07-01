@@ -29,6 +29,9 @@ const Login = lazyRouteComponent(() => import("@/pages/Login"));
 const VerifyEmail = lazyRouteComponent(() => import("@/pages/VerifyEmail"));
 const Campaign = lazyRouteComponent(() => import("@/pages/Campaign"));
 const FlowmoChat = lazyRouteComponent(() => import("@/pages/FlowmoChat"));
+const CallFlows = lazyRouteComponent(() => import("@/pages/CallFlows"));
+const CallFlowDetail = lazyRouteComponent(() => import("@/pages/CallFlowDetail"));
+const PublicCall = lazyRouteComponent(() => import("@/pages/PublicCall"));
 const AdminPage = lazyRouteComponent(() => import("@/pages/AdminPage"));
 
 const requireAuth = () => {
@@ -212,6 +215,26 @@ const flowmoRoute = createRoute({
   beforeLoad: requireAuth,
 });
 
+const callFlowsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "call-flows",
+  component: CallFlows,
+  beforeLoad: requireAuth,
+});
+
+const callFlowDetailRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "call-flows/$id",
+  component: CallFlowDetail,
+  beforeLoad: requireAuth,
+});
+
+const publicCallRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "call/$token",
+  component: PublicCall,
+});
+
 const adminRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "admin",
@@ -238,6 +261,9 @@ const routeTree = rootRoute.addChildren([
   insightsRoute,
   campaignRoute,
   flowmoRoute,
+  callFlowsRoute,
+  callFlowDetailRoute,
+  publicCallRoute,
   adminRoute,
 ]);
 

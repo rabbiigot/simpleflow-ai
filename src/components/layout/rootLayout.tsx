@@ -20,6 +20,10 @@ const MOBILE_BOTTOM_NAV: NavigationItem[] = ["/dashboard", "/social", "/workspac
 const AiPanelContext = createContext<"expanded" | "collapsed">("collapsed");
 export const useAiPanelState = () => useContext(AiPanelContext);
 
+const SidebarStateContext = createContext<"expanded" | "collapsed">("expanded");
+/** Current desktop nav-sidebar state — lets pages compensate their layout. */
+export const useSidebarState = () => useContext(SidebarStateContext);
+
 const RootLayout = () => {
   const [sidebarState, setSidebarState] = useState<"expanded" | "collapsed">(
     "expanded",
@@ -39,12 +43,12 @@ const RootLayout = () => {
   const KNOWN_PATHS = [
     "/", "/dashboard", "/social", "/finance", "/tasks",
     "/automation", "/workspace", "/insights", "/analytics",
-    "/campaign", "/flowmo",
+    "/campaign", "/flowmo", "/call-flows",
     "/sign-up", "/login", "/get-started", "/verify-email",
     "/admin",
   ];
   const isKnownPath = KNOWN_PATHS.some(
-    (p) => pathname === p || pathname.startsWith("/workspace/project/") || pathname.startsWith("/social/profile") || pathname.startsWith("/profile/settings"),
+    (p) => pathname === p || pathname.startsWith("/workspace/project/") || pathname.startsWith("/social/profile") || pathname.startsWith("/profile/settings") || pathname.startsWith("/call-flows/"),
   );
 
   const loggingPages = useMemo(() => {
@@ -150,9 +154,11 @@ const RootLayout = () => {
           style={{ height: "calc(100vh)" }}
         >
           <AiPanelContext.Provider value={aiState}>
-            <div className="@container/main relative h-full w-full overflow-y-auto bg-background">
-              <Outlet />
-            </div>
+            <SidebarStateContext.Provider value={sidebarState}>
+              <div className="@container/main relative h-full w-full overflow-y-auto bg-background">
+                <Outlet />
+              </div>
+            </SidebarStateContext.Provider>
           </AiPanelContext.Provider>
         </div>
         {!isFlowmoPage && (

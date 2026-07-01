@@ -505,13 +505,60 @@ function BlockPreview({ block, globalStyles }: { block: BlockData; globalStyles:
       );
     }
 
-    case "code":
+    case "code": {
+      const codeHtml = block.content.html || "";
+      const isFullDoc = /<!doctype html|<html[\s>]/i.test(codeHtml);
+      if (isFullDoc) {
+        // A pasted full HTML email — render it faithfully in a sandboxed
+        // iframe (no script execution; clicks pass through for selection/drag).
+        return (
+          <div style={style}>
+            <iframe
+              title="Email preview"
+              srcDoc={codeHtml}
+              sandbox="allow-same-origin"
+              onLoad={(e) => {
+                // Auto-size to the pasted content (no fixed max height).
+                const f = e.currentTarget;
+                try {
+                  const doc = f.contentDocument;
+                  if (doc) {
+                    f.style.height =
+                      Math.max(
+                        doc.documentElement.scrollHeight,
+                        doc.body?.scrollHeight ?? 0,
+                      ) + "px";
+                  }
+                } catch {
+                  /* cross-origin guard */
+                }
+              }}
+              className="pointer-events-none block w-full"
+              style={{ border: 0, height: 200, background: "#fff" }}
+            />
+          </div>
+        );
+      }
       return (
         <div style={style}>
-          {block.content.html ? (
-            <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(block.content.html, {
-  ALLOWED_TAGS: ["b", "i", "u", "em", "strong", "a", "p", "br", "span", "div", "h1", "h2", "h3", "ul", "ol", "li", "table", "tr", "td", "th", "img"],
-  ALLOWED_ATTR: ["href", "src", "alt", "style", "class", "width", "height"],
+          {codeHtml ? (
+            <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(codeHtml, {
+  // Email-friendly allowlist: cover table-based layouts + inline styling that
+  // pasted email HTML relies on, while still stripping scripts/handlers.
+  ALLOWED_TAGS: [
+    "b", "i", "u", "em", "strong", "small", "sub", "sup", "s", "strike",
+    "a", "p", "br", "hr", "span", "div", "section", "article", "header",
+    "footer", "main", "center", "font", "blockquote", "pre", "code",
+    "h1", "h2", "h3", "h4", "h5", "h6", "ul", "ol", "li", "dl", "dt", "dd",
+    "table", "thead", "tbody", "tfoot", "tr", "td", "th", "caption",
+    "colgroup", "col", "img", "figure", "figcaption", "label", "address",
+  ],
+  ALLOWED_ATTR: [
+    "href", "src", "alt", "title", "style", "class", "id", "width", "height",
+    "align", "valign", "bgcolor", "color", "background", "cellpadding",
+    "cellspacing", "border", "colspan", "rowspan", "target", "rel", "role",
+    "dir", "face", "size", "name",
+  ],
   ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto):|[^a-z]|[a-z+.-]+(?:[^a-z+.:-]|$))/i,
 }) }} />
           ) : (
@@ -521,6 +568,7 @@ function BlockPreview({ block, globalStyles }: { block: BlockData; globalStyles:
           )}
         </div>
       );
+    }
 
     default:
       return <div style={style}>Unknown block</div>;

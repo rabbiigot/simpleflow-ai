@@ -79,7 +79,6 @@ import {
   type EmailTemplateData,
   type CampaignRecipientData,
 } from "@/lib/backend-api";
-import { useAuthStore } from "@/store/auth-store";
 import EmailTemplateBuilder from "./email-builder/EmailTemplateBuilder";
 
 const statusColors: Record<string, string> = {
@@ -92,21 +91,9 @@ const statusColors: Record<string, string> = {
 };
 
 export default function CampaignContainer() {
-  const user = useAuthStore((s) => s.user);
-  const isAdmin = user?.role === "ADMIN";
+  // Access is gated by <FeatureGate allowed={emailCampaigns}> on the route,
+  // which permits Pro / Team / Enterprise plans (and admins).
   const [activeTab, setActiveTab] = useState("campaigns");
-
-  if (!isAdmin) {
-    return (
-      <div className="page-shell">
-        <div className="flex flex-col items-center justify-center h-[60vh] gap-4 text-muted-foreground">
-          <AlertTriangle className="w-16 h-16" />
-          <h2 className="text-xl font-semibold">Admin Access Required</h2>
-          <p className="text-sm">Only administrators can access the Campaign module.</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="page-shell">

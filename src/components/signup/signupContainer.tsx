@@ -2,6 +2,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { COUNTRIES, type Country } from "@/constants/countries";
 import {
+  createPaymentCheckout,
   listPlans,
   resendVerification,
   signUp,
@@ -13,11 +14,13 @@ import { useAuthStore } from "@/store/auth-store";
 import sfLogo from "@/assets/chatgptlogosf.png";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link } from "@tanstack/react-router";
-import { ChevronDown, Eye, EyeOff, Loader2, Mail, Search } from "lucide-react";
+import { ChevronDown, Eye, EyeOff, Mail, Search } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import { currencyForCountry } from "@/lib/pricing";
+import SignupPlanSelection from "./SignupPlanSelection";
 
 const signupSchema = z
   .object({
@@ -76,6 +79,10 @@ const SignupContainer = () => {
 
   const [signupDone, setSignupDone] = useState(false);
   const [signupEmail, setSignupEmail] = useState("");
+  // Two-step signup: collect details, then pick a plan.
+  const [step, setStep] = useState<"details" | "plan">("details");
+  const [pendingValues, setPendingValues] = useState<SignUpFormValues | null>(null);
+  const [finalizing, setFinalizing] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState<Country | null>(null);
   const [dialCode, setDialCode] = useState("");
   const [showCountryDropdown, setShowCountryDropdown] = useState(false);
@@ -132,11 +139,24 @@ const SignupContainer = () => {
     setCountrySearch("");
   };
 
-  const onSubmit = async (values: SignUpFormValues) => {
+  // Step 1: details submitted → move to plan selection (no account yet).
+  const onSubmit = (values: SignUpFormValues) => {
+    setPendingValues(values);
+    setStep("plan");
+  };
+
+  // Step 2: a plan was chosen → create the account with that plan/trial.
+  const finalize = async (
+    tier: PlanTier,
+    opts: { trial?: boolean; pay?: boolean } = {},
+  ) => {
+    if (!pendingValues || finalizing) return;
+    const values = pendingValues;
     const fullPhone = values.phoneNumber?.trim()
       ? `${dialCode}${values.phoneNumber.trim().replace(/^0+/, "")}`
       : undefined;
 
+    setFinalizing(true);
     try {
       const response = await signUp({
         firstName: values.firstName,
@@ -147,11 +167,41 @@ const SignupContainer = () => {
         country: values.country,
         address: values.address?.trim() || undefined,
         password: values.password,
-        planTier: selectedTier,
+        planTier: tier,
+        startTrial: opts.trial === true,
       });
 
-      toast.success(response.message || "Account created. Check your email.");
       clearAuth();
+
+      if (opts.pay) {
+        // Use the signup token so the checkout call is authenticated, then
+        // redirect to PayMongo's hosted checkout (GCash / card / QR).
+        if (response.token) {
+          localStorage.setItem("simpleflow_token", response.token);
+          if (response.user?.id) {
+            localStorage.setItem("simpleflow_user_id", String(response.user.id));
+          }
+        }
+        try {
+          const { checkoutUrl } = await createPaymentCheckout({
+            planTier: tier as "PRO" | "TEAM" | "ENTERPRISE",
+          });
+          if (checkoutUrl) {
+            window.location.href = checkoutUrl;
+            return;
+          }
+          toast.error("Could not start checkout. Try again from Profile Settings.");
+        } catch (err) {
+          toast.error(
+            err instanceof Error ? err.message : "Checkout could not be started.",
+          );
+        }
+      } else if (opts.trial) {
+        toast.success(`Free trial started on ${tier}. Check your email to verify.`);
+      } else {
+        toast.success(response.message || "Account created. Check your email.");
+      }
+
       setSignupEmail(values.email);
       setSignupDone(true);
       reset();
@@ -159,6 +209,8 @@ const SignupContainer = () => {
       toast.error(
         error instanceof Error ? error.message : "Failed to create account.",
       );
+    } finally {
+      setFinalizing(false);
     }
   };
 
@@ -201,6 +253,28 @@ const SignupContainer = () => {
                 Didn't receive it? Resend verification email
               </button>
             </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (step === "plan") {
+    return (
+      <div className="relative min-h-screen overflow-y-auto bg-gray-100 dark:bg-background">
+        <div className="relative flex min-h-screen items-center justify-center px-4 py-10">
+          <div className="w-full max-w-4xl rounded-lg bg-white/95 p-4 shadow-xl backdrop-blur dark:bg-card sm:p-8">
+            <SignupPlanSelection
+              plans={plans}
+              selectedTier={selectedTier}
+              currency={currencyForCountry(pendingValues?.country)}
+              onSelect={setSelectedTier}
+              onStartFree={() => void finalize("FREE")}
+              onStartTrial={(tier) => void finalize(tier, { trial: true })}
+              onProceedPayment={(tier) => void finalize(tier, { pay: true })}
+              onBack={() => setStep("details")}
+              finalizing={finalizing}
+            />
           </div>
         </div>
       </div>
@@ -303,37 +377,6 @@ const SignupContainer = () => {
                   {errors.organizationName.message}
                 </p>
               )}
-            </div>
-
-            <div className="md:col-span-2">
-              <Label className="mb-1 text-gray-700">Choose a plan</Label>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                {(plans.length > 0
-                  ? plans.map((p) => ({ tier: p.tier, name: p.name }))
-                  : validTiers.map((t) => ({
-                      tier: t,
-                      name: t.charAt(0) + t.slice(1).toLowerCase(),
-                    }))
-                ).map((p) => (
-                  <button
-                    key={p.tier}
-                    type="button"
-                    onClick={() => setSelectedTier(p.tier as PlanTier)}
-                    className={cn(
-                      "rounded-md border px-3 py-2 text-sm transition",
-                      selectedTier === p.tier
-                        ? "border-indigo-500 bg-indigo-50 font-medium text-indigo-700"
-                        : "border-gray-300 bg-white text-gray-700 hover:border-indigo-300",
-                    )}
-                  >
-                    {p.name}
-                  </button>
-                ))}
-              </div>
-              <p className="mt-1 text-xs text-gray-500">
-                You'll start on this plan. Paid plans are activated after
-                checkout.
-              </p>
             </div>
 
             <div className="md:col-span-2">
@@ -530,8 +573,7 @@ const SignupContainer = () => {
                 disabled={isSubmitting}
                 className="w-full rounded-md bg-linear-to-r from-blue-600 to-purple-600 px-4 py-2 text-white transition hover:from-blue-700 hover:to-purple-700 disabled:opacity-60 flex items-center justify-center gap-2"
               >
-                {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
-                {isSubmitting ? "Creating account..." : "Sign Up"}
+                Continue to plan
               </button>
             </div>
           </form>

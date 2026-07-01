@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { setFlowmoVoicePref } from "@/lib/flowmo-voice";
 import { Textarea } from "@/components/ui/textArea";
 import GitHubPatDialog from "@/components/social/GitHubPatDialog";
 import githubIcon from "@/assets/github.svg";
@@ -75,6 +76,7 @@ import {
   Building2,
   CreditCard,
   Trash2,
+  Volume2,
 } from "lucide-react";
 import { type ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -156,6 +158,8 @@ export default function ProfileSettings({ embedded, initialTab }: { embedded?: b
   const [themeState, setThemeState] = useState<AppTheme>(() => getStoredTheme());
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [activityStatus, setActivityStatus] = useState(true);
+  const [flowmoVoiceEnabled, setFlowmoVoiceEnabled] = useState(false);
+  const [savingVoice, setSavingVoice] = useState(false);
 
   // Integrations state
   const [githubStatus, setGithubStatus] = useState<GitHubStatus | null>(null);
@@ -262,6 +266,9 @@ export default function ProfileSettings({ embedded, initialTab }: { embedded?: b
         setEditFirstName(data.firstName || "");
         setEditLastName(data.lastName || "");
         setEditBio(data.bio || "");
+        const voiceOn = Boolean(data.flowmoVoiceEnabled);
+        setFlowmoVoiceEnabled(voiceOn);
+        setFlowmoVoicePref(voiceOn, data.flowmoVoice || "alloy");
         try {
           const raw = localStorage.getItem(PROFILE_STORAGE_KEY);
           if (raw) {
@@ -586,6 +593,29 @@ export default function ProfileSettings({ embedded, initialTab }: { embedded?: b
     setThemeState(next);
     setTheme(next);
   }, []);
+
+  const handleFlowmoVoiceToggle = useCallback(
+    async (checked: boolean) => {
+      if (!currentUserId) return;
+      setFlowmoVoiceEnabled(checked);
+      setFlowmoVoicePref(checked, "alloy");
+      setSavingVoice(true);
+      try {
+        await updateUserProfile(currentUserId, {
+          flowmoVoiceEnabled: checked,
+          flowmoVoice: "alloy",
+        });
+      } catch {
+        // revert on failure
+        setFlowmoVoiceEnabled(!checked);
+        setFlowmoVoicePref(!checked, "alloy");
+        toast.error("Failed to update FlowMo voice setting");
+      } finally {
+        setSavingVoice(false);
+      }
+    },
+    [currentUserId],
+  );
 
   // ── Organization & billing handlers ──
   const canManageOrg =
@@ -1042,6 +1072,33 @@ export default function ProfileSettings({ embedded, initialTab }: { embedded?: b
                       checked={themeState === "dark"}
                       onCheckedChange={handleThemeToggle}
                       aria-label="Toggle dark mode"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="rounded-md shadow-sm">
+                <CardContent className="space-y-5 pt-6">
+                  <div>
+                    <h3 className="text-base font-semibold text-foreground">FlowMo Assistant</h3>
+                    <p className="text-sm text-muted-foreground">Control how FlowMo responds to you.</p>
+                  </div>
+
+                  <div className="flex items-center justify-between rounded-lg border p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-muted">
+                        <Volume2 className="h-5 w-5 text-muted-foreground" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-foreground">Voice replies</p>
+                        <p className="text-xs text-muted-foreground">Have FlowMo speak its responses aloud using the Alloy voice</p>
+                      </div>
+                    </div>
+                    <Switch
+                      checked={flowmoVoiceEnabled}
+                      disabled={savingVoice}
+                      onCheckedChange={(c) => void handleFlowmoVoiceToggle(c)}
+                      aria-label="Toggle FlowMo voice replies"
                     />
                   </div>
                 </CardContent>

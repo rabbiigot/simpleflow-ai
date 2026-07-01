@@ -6,29 +6,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { ConditionLogicGate, ConditionOperator } from "@/lib/backend-api";
 import { listWorkspaces, type Workspace } from "@/lib/backend-api";
-import { Filter, Loader2, Plus, Trash2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { CONDITION_OPERATOR_LABELS, CRON_PRESETS, NODE_ICONS, NODE_LABELS } from "./constants";
-import type { ConditionNodeData, TriggerNodeData } from "./types";
+import { CRON_PRESETS, NODE_ICONS, NODE_LABELS } from "./constants";
+import type { TriggerNodeData } from "./types";
 
 type TriggerConfigPanelProps = {
   node: TriggerNodeData;
   onChange: (updated: TriggerNodeData) => void;
-  conditions: ConditionNodeData[];
-  onAddCondition: () => void;
-  onUpdateCondition: (updated: ConditionNodeData) => void;
-  onRemoveCondition: (id: string) => void;
 };
 
 export default function TriggerConfigPanel({
   node,
   onChange,
-  conditions,
-  onAddCondition,
-  onUpdateCondition,
-  onRemoveCondition,
 }: TriggerConfigPanelProps) {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [loadingWs, setLoadingWs] = useState(false);
@@ -165,110 +156,14 @@ export default function TriggerConfigPanel({
         </div>
       )}
 
-      {/* Conditions (If/Else) — always shown inside trigger config */}
-      <div className="space-y-3 border-t pt-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-amber-500" />
-            <span className="text-sm font-semibold">Conditions</span>
-          </div>
-          <button
-            type="button"
-            onClick={onAddCondition}
-            className="flex items-center gap-1 rounded-md border px-2 py-1 text-xs hover:bg-muted transition-colors"
-          >
-            <Plus className="h-3 w-3" /> Add
-          </button>
-        </div>
-
-        {conditions.length === 0 && (
-          <p className="text-xs text-muted-foreground">
-            No conditions. Add conditions to only run actions when specific
-            field values match.
-          </p>
-        )}
-
-        {conditions.map((cond, idx) => (
-          <div
-            key={cond.id}
-            className="rounded-lg border border-amber-500/30 p-3 space-y-2 bg-amber-500/5"
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-amber-600">
-                {idx === 0 ? "IF" : cond.logicGate}
-              </span>
-              <button
-                type="button"
-                onClick={() => onRemoveCondition(cond.id)}
-                className="text-muted-foreground hover:text-red-500 transition-colors"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </button>
-            </div>
-
-            {idx > 0 && (
-              <select
-                value={cond.logicGate}
-                onChange={(e) =>
-                  onUpdateCondition({
-                    ...cond,
-                    logicGate: e.target.value as ConditionLogicGate,
-                  })
-                }
-                className="h-10 md:h-7 w-full rounded border border-border bg-background px-2 text-xs"
-              >
-                <option value="AND">AND</option>
-                <option value="OR">OR</option>
-              </select>
-            )}
-
-            <input
-              type="text"
-              placeholder="Field (e.g. customFieldValues.priority)"
-              value={cond.field}
-              onChange={(e) =>
-                onUpdateCondition({ ...cond, field: e.target.value })
-              }
-              className="h-10 md:h-7 w-full rounded border border-border bg-background px-2 text-xs"
-            />
-
-            <select
-              value={cond.operator}
-              onChange={(e) =>
-                onUpdateCondition({
-                  ...cond,
-                  operator: e.target.value as ConditionOperator,
-                })
-              }
-              className="h-10 md:h-7 w-full rounded border border-border bg-background px-2 text-xs"
-            >
-              {(
-                Object.entries(CONDITION_OPERATOR_LABELS) as Array<
-                  [ConditionOperator, string]
-                >
-              ).map(([op, label]) => (
-                <option key={op} value={op}>
-                  {label}
-                </option>
-              ))}
-            </select>
-
-            {cond.operator !== "IS_EMPTY" &&
-              cond.operator !== "IS_NOT_EMPTY" && (
-                <input
-                  type="text"
-                  placeholder="Value"
-                  value={cond.value}
-                  onChange={(e) =>
-                    onUpdateCondition({ ...cond, value: e.target.value })
-                  }
-                  className="h-10 md:h-7 w-full rounded border border-border bg-background px-2 text-xs"
-                />
-              )}
-          </div>
-        ))}
+      <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
+        <p className="text-xs text-muted-foreground">
+          Need to branch on field values? Drag an{" "}
+          <span className="font-semibold text-amber-600">IF / ELSE</span> or{" "}
+          <span className="font-semibold text-violet-600">Switch</span> block
+          onto the canvas from the Logic section.
+        </p>
       </div>
-
     </div>
   );
 }

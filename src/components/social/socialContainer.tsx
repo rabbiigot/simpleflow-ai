@@ -44,11 +44,13 @@ import {
   Star,
 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-is-mobile";
+import { useSidebarState } from "@/components/layout/rootLayout";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   createChatChannel,
   getChatChannels,
+  listMyOrganizations,
   sendChatMessage,
   sharePost as sharePostApi,
   type ChatChannel,
@@ -82,8 +84,20 @@ export default function SocialPage() {
   const [isLoadingChannels, setIsLoadingChannels] = useState(false);
   // On mobile the channels list is collapsed by default to save vertical space.
   const isMobile = useIsMobile();
+  const sidebarState = useSidebarState();
+  // When the desktop nav collapses, the content area widens by (w-65 - w-19)
+  // = 11.5rem. Cap the feed to its expanded width and center it so the cards
+  // keep the same size and position as when the nav is expanded.
+  const navCollapsed = !isMobile && sidebarState === "collapsed";
   const [channelsOpen, setChannelsOpen] = useState(false);
   const channelsVisible = !isMobile || channelsOpen;
+  // Primary organization name — "Public" posts are scoped to it.
+  const [orgName, setOrgName] = useState("");
+  useEffect(() => {
+    listMyOrganizations()
+      .then((orgs) => setOrgName(orgs?.[0]?.name ?? ""))
+      .catch(() => setOrgName(""));
+  }, []);
   const [isCreatingChannel, setIsCreatingChannel] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -651,12 +665,15 @@ export default function SocialPage() {
 
   return (
     <div className="page-shell">
-      <div className="mx-auto max-w-8xl">
+      <div
+        className="@container/social mx-auto w-full max-w-8xl"
+        style={navCollapsed ? { maxWidth: "calc(100% - 11.5rem)" } : undefined}
+      >
         <div className="mb-3">
           <p className="section-label">Social</p>
           <h1 className="text-2xl font-semibold">Community Feed</h1>
         </div>
-        <div className="grid gap-3 @[700px]/main:grid-cols-[minmax(240px,320px)_minmax(0,1fr)] @[1100px]/main:grid-cols-[minmax(240px,320px)_minmax(0,1fr)_minmax(240px,320px)]">
+        <div className="grid gap-3 @[700px]/social:grid-cols-[minmax(240px,320px)_minmax(0,1fr)] @[1100px]/social:grid-cols-[minmax(240px,320px)_minmax(0,1fr)_minmax(240px,320px)]">
           {/* ====== Left sidebar: Groups + Profile (collapsed layout) ====== */}
           <aside
             className={`space-y-4 lg:sticky lg:top-4 lg:self-start ${
@@ -742,7 +759,7 @@ export default function SocialPage() {
             />
 
             {/* Profile card — shown here when right sidebar is hidden */}
-            <Card className="gap-0 py-0 @[1100px]/main:hidden" data-tour="social-profile">
+            <Card className="gap-0 py-0 @[1100px]/social:hidden" data-tour="social-profile">
               <CardContent className="p-3">
                 <button
                   type="button"
@@ -829,6 +846,7 @@ export default function SocialPage() {
                   }
                   isPosting={isPosting}
                   channels={channels}
+                  orgName={orgName}
                 />
                 </div>
 
@@ -914,7 +932,7 @@ export default function SocialPage() {
           </main>
 
           {/* ====== Right sidebar: Profile (hidden when Flowmo is open) ====== */}
-          <aside className="hidden @[1100px]/main:block @[1100px]/main:sticky @[1100px]/main:top-4 @[1100px]/main:self-start space-y-4">
+          <aside className="hidden @[1100px]/social:block @[1100px]/social:sticky @[1100px]/social:top-4 @[1100px]/social:self-start space-y-4">
             <Card className="gap-0 py-0">
               <CardContent className="p-3">
                 <button

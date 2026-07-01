@@ -46,6 +46,8 @@ import {
   type AutomationData,
   type AutomationLogEntry,
   type AutomationTriggerType,
+  type ConditionLogicGate,
+  type ConditionOperator,
   type Workspace,
 } from "@/lib/backend-api";
 import {
@@ -80,6 +82,8 @@ export default function AutomationContainer() {
   const [logsLoading, setLogsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("automations");
   const [editingAutomation, setEditingAutomation] = useState<AutomationData | null>(null);
+  // The create/edit builder is shown full-screen instead of as a tab.
+  const [builderOpen, setBuilderOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<AutomationData | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -213,6 +217,13 @@ export default function AutomationContainer() {
       config?: Record<string, unknown>;
       sortOrder: number;
     }>;
+    conditions?: Array<{
+      field: string;
+      operator: ConditionOperator;
+      value?: string;
+      logicGate?: ConditionLogicGate;
+      sortOrder?: number;
+    }>;
   }) {
     setSaving(true);
     try {
@@ -222,6 +233,7 @@ export default function AutomationContainer() {
           description: data.description,
           trigger: data.trigger,
           actions: data.actions,
+          conditions: data.conditions,
         });
         toast.success("Automation updated");
       } else {
@@ -232,10 +244,12 @@ export default function AutomationContainer() {
           userId,
           trigger: data.trigger,
           actions: data.actions,
+          conditions: data.conditions,
         });
         toast.success("Automation created");
       }
       setEditingAutomation(null);
+      setBuilderOpen(false);
       setActiveTab("automations");
       fetchAutomations();
     } catch {
@@ -253,12 +267,17 @@ export default function AutomationContainer() {
 
   function handleEdit(automation: AutomationData) {
     setEditingAutomation(automation);
-    setActiveTab("create");
+    setBuilderOpen(true);
   }
 
   function handleCreateNew() {
     setEditingAutomation(null);
-    setActiveTab("create");
+    setBuilderOpen(true);
+  }
+
+  function handleCloseBuilder() {
+    setBuilderOpen(false);
+    setEditingAutomation(null);
   }
 
   // ---- Stats ----
@@ -281,6 +300,36 @@ export default function AutomationContainer() {
         (a.trigger?.config as Record<string, unknown> | null)?.boardId === filterWorkspaceId ||
         (a.trigger?.config as Record<string, unknown> | null)?.workspaceId === filterWorkspaceId,
       );
+
+  // Full-screen create/edit builder (replaces the old "Create" tab).
+  if (builderOpen) {
+    return (
+      <div className="page-shell flex h-full min-h-0 flex-col">
+        <div className="mb-4 flex items-center gap-3">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="gap-1.5"
+            onClick={handleCloseBuilder}
+          >
+            <ChevronLeft className="h-4 w-4" />
+            Back
+          </Button>
+          <h1 className="text-xl font-bold md:text-2xl">
+            {editingAutomation ? "Edit Automation" : "Create Automation"}
+          </h1>
+        </div>
+        <div className="min-h-0 flex-1 overflow-hidden rounded-lg border">
+          <WorkflowBuilder
+            key={editingAutomation?.id ?? "new"}
+            initial={editingAutomation}
+            onSave={handleSave}
+            saving={saving}
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="page-shell">
@@ -354,9 +403,6 @@ export default function AutomationContainer() {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-3">
         <TabsList data-tour="automation-tabs">
           <TabsTrigger value="automations">My Automations</TabsTrigger>
-          <TabsTrigger value="create">
-            {editingAutomation ? "Edit" : "Create"}
-          </TabsTrigger>
           <TabsTrigger value="history">History</TabsTrigger>
         </TabsList>
 
@@ -564,17 +610,7 @@ export default function AutomationContainer() {
           />
         </TabsContent>
 
-        {/* ---- Tab 2: Create / Edit ---- */}
-        <TabsContent value="create" className="min-h-[600px]">
-          <WorkflowBuilder
-            key={editingAutomation?.id ?? "new"}
-            initial={editingAutomation}
-            onSave={handleSave}
-            saving={saving}
-          />
-        </TabsContent>
-
-        {/* ---- Tab 3: History ---- */}
+        {/* ---- Tab 2: History ---- */}
         <TabsContent value="history" className="space-y-4">
           <h2 className="text-xl font-semibold">Execution History</h2>
           <AutomationHistory logs={logs} loading={logsLoading} />
@@ -661,10 +697,12 @@ function AutomationPreview({
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Workflow flow */}
+          {/* Workflow flow — mirrors the canvas blocks */}
           <div className="flex items-center gap-1.5 flex-wrap">
-            <div className="flex items-center gap-1.5 rounded-md border bg-blue-500/5 border-blue-500/20 px-2 py-1">
-              <TriggerIcon className="h-3.5 w-3.5 text-blue-500 shrink-0" />
+            <div className="flex items-center gap-2 rounded-xl border bg-card/90 px-2.5 py-1.5 opacity-90 shadow-sm">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-blue-500/10">
+                <TriggerIcon className="h-3.5 w-3.5 text-blue-500" />
+              </span>
               <span className="text-xs font-medium">{triggerLabel}</span>
             </div>
 
@@ -679,8 +717,10 @@ function AutomationPreview({
                 const actionLabel = NODE_LABELS[action.type] ?? action.type;
                 return (
                   <div key={action.id} className="flex items-center gap-1.5">
-                    <div className="flex items-center gap-1.5 rounded-md border bg-green-500/5 border-green-500/20 px-2 py-1">
-                      <ActionIcon className="h-3.5 w-3.5 text-green-500 shrink-0" />
+                    <div className="flex items-center gap-2 rounded-xl border bg-card/90 px-2.5 py-1.5 opacity-90 shadow-sm">
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-green-500/10">
+                        <ActionIcon className="h-3.5 w-3.5 text-green-500" />
+                      </span>
                       <span className="text-xs font-medium">{actionLabel}</span>
                     </div>
                     {idx < automation.actions.length - 1 && (

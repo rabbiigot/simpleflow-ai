@@ -22,6 +22,12 @@ import carousel3 from "../../assets/carousel-3.png";
 import carousel4 from "../../assets/carousel-4.png";
 import carousel5 from "../../assets/carousel-5.png";
 import { listPlans, type PlanData } from "@/lib/backend-api";
+import {
+  type Currency,
+  CURRENCY_OPTIONS,
+  CURRENCY_SYMBOL,
+  planPrice,
+} from "@/lib/pricing";
 import { useNavigate } from "@tanstack/react-router";
 
 const CAROUSEL_IMAGES = [carousel1, carousel2, carousel3, carousel4, carousel5];
@@ -112,6 +118,7 @@ const GetStartedContainer: React.FC = () => {
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">(
     "monthly",
   );
+  const [currency, setCurrency] = useState<Currency>("PHP");
   const [slide, setSlide] = useState(0);
   const navigate = useNavigate();
 
@@ -179,7 +186,7 @@ const GetStartedContainer: React.FC = () => {
               className="bg-linear-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
               onClick={() => goSignUp()}
             >
-              Try Free
+              Sign Up
             </Button>
           </div>
         </div>
@@ -306,6 +313,22 @@ const GetStartedContainer: React.FC = () => {
             Start free, upgrade when you need more. No hidden fees.
           </p>
 
+          {/* Country / currency selector */}
+          <div className="flex justify-center mb-4">
+            <select
+              value={currency}
+              onChange={(e) => setCurrency(e.target.value as Currency)}
+              className="rounded-[10px] border border-border bg-background-secondary px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+              aria-label="Select country / currency"
+            >
+              {CURRENCY_OPTIONS.map((c) => (
+                <option key={c.value} value={c.value}>
+                  {c.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
           {/* Billing toggle */}
           <div className="flex justify-center mb-12">
             <div className="inline-flex rounded-[10px] bg-secondary p-1">
@@ -358,11 +381,11 @@ const GetStartedContainer: React.FC = () => {
                     priceMonthly: 12,
                     priceYearly: 120,
                     features: [
-                      "$12 / user / month",
                       "12 org workspaces",
                       "1 personal workspace per member",
                       "Unlimited tasks",
-                      "3 automations",
+                      "10 automations per user",
+                      "3 call flows (up to 20 callers each)",
                       "Email campaigns (1 template, 10 lists, 500 sends/mo)",
                       "AI assistant (Flowmo)",
                       "Email support",
@@ -374,10 +397,10 @@ const GetStartedContainer: React.FC = () => {
                     priceMonthly: 39,
                     priceYearly: 360,
                     features: [
-                      "$39 / user / month",
                       "Unlimited org workspaces",
                       "5 personal workspaces per member",
-                      "30 automations (org-wide)",
+                      "30 automations per user",
+                      "50 call flows (unlimited callers)",
                       "Email campaigns",
                       "Unlimited contact lists, 5,000 sends/mo",
                       "24/7 SLA priority support",
@@ -392,6 +415,7 @@ const GetStartedContainer: React.FC = () => {
                       "Custom pricing",
                       "Unlimited everything",
                       "Everything in Team",
+                      "Unlimited call flows",
                       "SSO / SAML",
                       "Audit logs",
                       "Custom integrations",
@@ -406,10 +430,13 @@ const GetStartedContainer: React.FC = () => {
                   TIER_ORDER.indexOf(a.tier) - TIER_ORDER.indexOf(b.tier),
               )
               .map((plan) => {
+              const yearlyPrice = planPrice(plan.tier, currency, "yearly");
+              const monthlyPrice = planPrice(plan.tier, currency, "monthly");
               const perMonth =
                 billingCycle === "yearly"
-                  ? Math.round(plan.priceYearly / 12)
-                  : plan.priceMonthly;
+                  ? Math.round((yearlyPrice ?? 0) / 12)
+                  : (monthlyPrice ?? 0);
+              const sym = CURRENCY_SYMBOL[currency];
               const isPro = plan.tier === "PRO";
 
               return (
@@ -435,18 +462,25 @@ const GetStartedContainer: React.FC = () => {
                         <span className="text-4xl font-semibold text-foreground">
                           Custom
                         </span>
+                      ) : plan.tier === "FREE" ? (
+                        <span className="text-4xl font-semibold text-foreground">
+                          Free
+                        </span>
                       ) : (
                         <>
                           <span className="text-4xl font-semibold text-foreground">
-                            ${perMonth}
+                            {sym}
+                            {perMonth.toLocaleString()}
                           </span>
                           <span className="text-muted-foreground text-sm">
                             /user/mo
                           </span>
                           {billingCycle === "yearly" &&
-                            plan.priceYearly > 0 && (
+                            yearlyPrice != null &&
+                            yearlyPrice > 0 && (
                               <p className="text-xs text-muted-foreground mt-1">
-                                ${plan.priceYearly}/user billed yearly
+                                {sym}
+                                {yearlyPrice.toLocaleString()}/user billed yearly
                               </p>
                             )}
                         </>
@@ -465,7 +499,9 @@ const GetStartedContainer: React.FC = () => {
                         ? "Get Started Free"
                         : plan.tier === "ENTERPRISE"
                           ? "Contact Sales"
-                          : "Start Free Trial"}
+                          : plan.tier === "PRO"
+                            ? "Start Free Trial"
+                            : "Get Started"}
                     </Button>
                     <ul className="space-y-3">
                       {(plan.features as string[]).map((feature) => (

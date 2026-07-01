@@ -7,6 +7,7 @@ import { getFlowmoTour, SpotlightOverlay } from "@/components/layout/AI/TourGuid
 import { ImageWithLoader } from "@/components/ui/image-loader";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { speakFlowmo } from "@/lib/flowmo-voice";
 import {
   chatAi,
   chatWithDocument,
@@ -638,6 +639,7 @@ const FlowmoChat = () => {
         }
 
         setMessages((prev) => [...prev, { id: `assistant-${Date.now()}`, role: "assistant", type: "response", response: result, createdAt: Date.now() }]);
+        void speakFlowmo(result.message || result.confirmationPrompt || "");
       } catch (error) {
         setMessages((prev) => [...prev, { id: `assistant-error-${Date.now()}`, role: "assistant", type: "error", text: error instanceof Error ? error.message : "Failed to execute AI chat orchestration.", createdAt: Date.now() }]);
       } finally { setIsSending(false); refreshEnergy(); }

@@ -21,6 +21,8 @@ export type CreatePostBoxProps = {
   onPost: (content: string, channelIds: string[], visibility: "PUBLIC" | "CHANNELS", media?: File) => void;
   isPosting?: boolean;
   channels: ChatChannel[];
+  /** Organization name — "Public" is scoped to this org. */
+  orgName?: string;
 };
 
 export default function CreatePostBox({
@@ -29,6 +31,7 @@ export default function CreatePostBox({
   onPost,
   isPosting = false,
   channels,
+  orgName,
 }: CreatePostBoxProps) {
   const [content, setContent] = useState("");
   const [selectedValue, setSelectedValue] = useState("public");
@@ -125,7 +128,7 @@ export default function CreatePostBox({
                   <SelectContent>
                     <SelectItem value="public">
                       <Globe className="h-3.5 w-3.5" />
-                      Public
+                      {orgName ? `Public (${orgName})` : "Public"}
                     </SelectItem>
                     {channels.map((ch) => {
                       const { Icon } = getChannelIcon(ch.icon ?? "hash");

@@ -8,10 +8,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import FeedbackDialog from "@/components/layout/FeedbackDialog";
+import { usePlanEntitlements } from "@/hooks/use-plan-entitlements";
 import { getCurrentUserId, getUserProfile } from "@/lib/backend-api";
 import { setTheme } from "@/lib/theme";
 import { PROFILE_STORAGE_KEY, useAuthStore } from "@/store/auth-store";
 import { useNavigate } from "@tanstack/react-router";
+import { MessageSquarePlus } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 type FooterContainerProps = {
@@ -35,6 +38,10 @@ const FooterContainer: React.FC<FooterContainerProps> = ({ sidebarState }) => {
     email: "",
   });
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
+  const entitlements = usePlanEntitlements();
+  const onTrial = entitlements?.status === "TRIALING";
+  const trialDaysLeft = onTrial ? entitlements?.trialDaysLeft ?? null : null;
 
   useEffect(() => {
     if (user) {
@@ -94,10 +101,26 @@ const FooterContainer: React.FC<FooterContainerProps> = ({ sidebarState }) => {
     >
       {sidebarState !== "expanded" ? (
           <div className="flex flex-col items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setShowFeedback(true)}
+            title="Write feedback"
+            className="grid h-8 w-8 place-items-center rounded-md border border-border text-indigo-700 hover:bg-muted dark:text-blue-400"
+          >
+            <MessageSquarePlus className="h-4 w-4" />
+          </button>
           <Avatar className="h-7 w-7">
             <AvatarImage src={profile.avatarUrl} />
             <AvatarFallback className="text-[10px] font-semibold">{initials}</AvatarFallback>
           </Avatar>
+          {trialDaysLeft != null && (
+            <span
+              title={`${entitlements?.name} trial — ${trialDaysLeft} day(s) left`}
+              className="rounded-full bg-indigo-100 px-1.5 py-0.5 text-[9px] font-semibold text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300"
+            >
+              {trialDaysLeft}d
+            </span>
+          )}
           <button
             type="button"
             onClick={() => setShowLogoutConfirm(true)}
@@ -108,6 +131,14 @@ const FooterContainer: React.FC<FooterContainerProps> = ({ sidebarState }) => {
         </div>
       ) : (
         <div className="space-y-3">
+          <button
+            type="button"
+            onClick={() => setShowFeedback(true)}
+            className="flex w-full items-center justify-center gap-2 rounded-md border border-border px-3 py-2 text-xs font-medium text-foreground hover:bg-muted transition-colors"
+          >
+            <MessageSquarePlus className="h-4 w-4 text-indigo-700 dark:text-blue-400" />
+            Write Feedback
+          </button>
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs text-muted-foreground">Signed in</p>
@@ -122,6 +153,24 @@ const FooterContainer: React.FC<FooterContainerProps> = ({ sidebarState }) => {
               <AvatarFallback className="text-xs font-semibold">{initials}</AvatarFallback>
             </Avatar>
           </div>
+
+          {trialDaysLeft != null && (
+            <button
+              type="button"
+              onClick={() => navigate({ to: "/social/profile", search: { tab: "organization" } })}
+              className="flex w-full items-center justify-between rounded-md border border-indigo-200 bg-indigo-50 px-2.5 py-1.5 text-left dark:border-indigo-500/30 dark:bg-indigo-950/30"
+            >
+              <span className="text-[11px] font-medium text-indigo-700 dark:text-indigo-300">
+                {entitlements?.name} trial
+              </span>
+              <span className="text-[11px] font-semibold text-indigo-700 dark:text-indigo-300">
+                {trialDaysLeft > 0
+                  ? `${trialDaysLeft} day${trialDaysLeft === 1 ? "" : "s"} left`
+                  : "Expired — Upgrade"}
+              </span>
+            </button>
+          )}
+
           <div className="flex gap-2">
             <button
               type="button"
@@ -142,6 +191,8 @@ const FooterContainer: React.FC<FooterContainerProps> = ({ sidebarState }) => {
         </div>
       )}
     </Card>
+
+    <FeedbackDialog open={showFeedback} onOpenChange={setShowFeedback} />
 
     <Dialog open={showLogoutConfirm} onOpenChange={setShowLogoutConfirm}>
       <DialogContent>

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { EmojiPicker } from "@/components/ui/emoji-picker";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAiEvents } from "@/hooks/use-ai-events";
+import { speakFlowmo } from "@/lib/flowmo-voice";
 import {
   chatAi,
   chatWithImage,
@@ -1592,6 +1593,7 @@ const FlowmoAssistantContainer: React.FC<FlowmoAssistantContainerProps> = ({
           createdAt: Date.now(),
         },
       ]);
+      void speakFlowmo(result.message || result.confirmationPrompt || "");
     } catch (error) {
       const message =
         error instanceof Error

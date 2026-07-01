@@ -286,6 +286,7 @@ export type SignUpPayload = {
   address?: string;
   organizationName?: string;
   planTier?: "FREE" | "PRO" | "TEAM" | "ENTERPRISE";
+  startTrial?: boolean;
 };
 
 export type LoginPayload = {
@@ -351,8 +352,11 @@ async function apiRequest<T>(path: string, init?: RequestInit): Promise<T> {
       );
     }
 
-    // Handle unauthorized — clear auth and send to the public landing page
-    if (response.status === 401 && typeof window !== "undefined") {
+    // Handle unauthorized — clear auth and send to the public landing page.
+    // Skip auth endpoints (e.g. /auth/login): there a 401 means "invalid
+    // credentials", which should surface on the form, not redirect away.
+    const isAuthEndpoint = path.startsWith("/auth/");
+    if (response.status === 401 && typeof window !== "undefined" && !isAuthEndpoint) {
       localStorage.removeItem("simpleflow_auth_state");
       localStorage.removeItem("simpleflow_token");
       localStorage.removeItem("simpleflow_user_id");
@@ -935,6 +939,36 @@ export async function resendVerification(email: string) {
   });
 }
 
+export type FeedbackCategory = "BUG" | "SUGGESTION" | "QUESTION" | "OTHER";
+export type FeedbackPriority = "LOW" | "MEDIUM" | "HIGH";
+
+// PayMongo hosted checkout (GCash / card / QR). Distinct from the legacy
+// Stripe-era `createCheckout` (/billing/checkout) below.
+export async function createPaymentCheckout(payload: {
+  planTier: "PRO" | "TEAM" | "ENTERPRISE";
+  billingCycle?: "monthly" | "yearly";
+}) {
+  return apiRequest<{ checkoutUrl: string; sessionId: string }>(
+    "/payments/checkout",
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export async function submitFeedback(payload: {
+  category: FeedbackCategory;
+  title: string;
+  message: string;
+  priority?: FeedbackPriority;
+}) {
+  return apiRequest<{ message: string }>("/feedback", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
 export async function login(payload: LoginPayload) {
   return apiRequest<{
     message: string;
@@ -1374,6 +1408,8 @@ export type UserProfile = {
   avatarUrl: string | null;
   coverUrl: string | null;
   dateCreated: string;
+  flowmoVoiceEnabled?: boolean;
+  flowmoVoice?: string | null;
 };
 
 export async function getUserProfile(userId: string) {
@@ -1389,6 +1425,8 @@ export async function updateUserProfile(
     coverUrl?: string;
     firstName?: string;
     lastName?: string;
+    flowmoVoiceEnabled?: boolean;
+    flowmoVoice?: string;
   },
 ) {
   const encoded = encodeURIComponent(userId);
@@ -1871,6 +1909,51 @@ export async function testAutomation(id: string) {
     error?: string;
     triggerType: string;
   }>(`/automations/${encoded}/test`, { method: "POST" });
+}
+
+/** One block's outcome in a test run, in execution order. */
+export type TestRunStep = {
+  nodeId: string;
+  kind: "trigger" | "action" | "ifElse" | "switch";
+  status: "success" | "failed" | "skipped";
+  /** Output handle taken for ifElse/switch nodes. */
+  handle?: string;
+  error?: string;
+  durationMs: number;
+};
+
+/**
+ * Dry-run the current builder graph without saving. Executes the graph and
+ * returns an ordered per-node trace so the canvas can light up each block.
+ */
+export async function testRunAutomation(payload: {
+  trigger?: {
+    type: AutomationTriggerType;
+    config?: Record<string, unknown>;
+  };
+  actions?: Array<{
+    type: AutomationActionType;
+    config?: Record<string, unknown>;
+    sortOrder: number;
+  }>;
+  conditions?: Array<{
+    field: string;
+    operator: ConditionOperator;
+    value?: string;
+    logicGate?: ConditionLogicGate;
+    sortOrder?: number;
+  }>;
+  payload?: Record<string, unknown>;
+}) {
+  return apiRequest<{
+    success: boolean;
+    error?: string;
+    message: string;
+    steps: TestRunStep[];
+  }>("/automations/test-run", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -2487,6 +2570,9 @@ export type PlanEntitlements = {
   maxContactLists: number;
   maxCampaignSendsPerMonth: number;
   dailyAiEnergy: number;
+  status?: string | null;
+  trialEndsAt?: string | null;
+  trialDaysLeft?: number | null;
 };
 
 export async function getMyEntitlements() {
@@ -2822,4 +2908,200 @@ export async function deleteEmailTemplate(id: number) {
 // Current user role check
 export async function getCurrentUserProfile() {
   return apiRequest<{ id: number; email: string; firstName: string; lastName: string; role: string }>("/users/me");
+}
+
+// ─── FlowMo voice (TTS) ───────────────────────────────────────────────
+export async function flowmoTextToSpeech(text: string, voice?: string) {
+  return apiRequest<{ audioBase64: string; mimeType: string; voice: string }>(
+    "/ai-orchestration/tts",
+    { method: "POST", body: JSON.stringify({ text, voice }) },
+  );
+}
+
+// ─── Call Flows ───────────────────────────────────────────────────────
+export type CallFlowQuestion = {
+  id?: number;
+  prompt: string;
+  expectedAnswer?: string | null;
+  weight?: number;
+};
+
+export type CallFlow = {
+  id: number;
+  title: string;
+  voice: string;
+  voiceSpeed: number;
+  systemInstruction: string;
+  scriptIntro: string | null;
+  webhookUrl: string | null;
+  scheduledAt: string | null;
+  publicToken: string;
+  status: string;
+  createdAt: string;
+  workspaceId: number | null;
+  invitedEmails: string[];
+  workspace?: { id: number; name: string } | null;
+  questions?: CallFlowQuestion[];
+  _count?: { questions: number; sessions: number };
+};
+
+export type CallFlowPayload = {
+  title: string;
+  voice?: string;
+  voiceSpeed?: number;
+  systemInstruction: string;
+  scriptIntro?: string;
+  webhookUrl?: string;
+  scheduledAt?: string | null;
+  questions?: CallFlowQuestion[];
+  workspaceId?: number | null;
+  newWorkspaceName?: string;
+  invitedEmails?: string[];
+};
+
+export type CallActivityItem = {
+  id: number;
+  callerName: string | null;
+  callerEmail: string | null;
+  status: string;
+  totalScore: number | null;
+  taskId: number | null;
+  createdAt: string;
+  endedAt: string | null;
+  callFlow: { id: number; title: string };
+};
+
+export async function getCallActivity(email?: string) {
+  const qs = email ? `?email=${encodeURIComponent(email)}` : "";
+  return apiRequest<CallActivityItem[]>(`/call-flows/activity${qs}`);
+}
+
+export async function listCallFlows(params?: { page?: number; pageSize?: number }) {
+  const q = new URLSearchParams();
+  if (params?.page) q.set("page", String(params.page));
+  if (params?.pageSize) q.set("pageSize", String(params.pageSize));
+  const qs = q.toString();
+  return apiRequest<{
+    data: CallFlow[];
+    total: number;
+    page: number;
+    pageSize: number;
+    totalPages: number;
+  }>(`/call-flows${qs ? `?${qs}` : ""}`);
+}
+
+export async function getCallFlow(id: number) {
+  return apiRequest<CallFlow>(`/call-flows/${id}`);
+}
+
+export async function createCallFlow(payload: CallFlowPayload) {
+  return apiRequest<CallFlow>("/call-flows", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+/** Synthesize a sample sentence to preview a voice + speed before saving. */
+export async function previewCallFlowVoice(params: {
+  voice?: string;
+  speed?: number;
+  text?: string;
+}) {
+  return apiRequest<{
+    audioBase64: string;
+    mimeType: string;
+    voice: string;
+    speed: number;
+  }>("/call-flows/preview-voice", {
+    method: "POST",
+    body: JSON.stringify(params),
+  });
+}
+
+export async function updateCallFlow(id: number, payload: Partial<CallFlowPayload>) {
+  return apiRequest<CallFlow>(`/call-flows/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteCallFlow(id: number) {
+  return apiRequest<{ message: string }>(`/call-flows/${id}`, { method: "DELETE" });
+}
+
+export type CallSessionResult = {
+  id: number;
+  status: string;
+  callerName: string | null;
+  callerEmail: string | null;
+  taskId: number | null;
+  totalScore: number | null;
+  createdAt: string;
+  summary?: string | null;
+  transcript?: Array<{ role: string; text: string }> | null;
+  answers: Array<{
+    id: number;
+    transcribedAnswer: string;
+    score: number | null;
+    reasoning: string | null;
+    question: { prompt: string };
+  }>;
+};
+
+export async function listCallFlowSessions(id: number) {
+  return apiRequest<CallSessionResult[]>(`/call-flows/${id}/sessions`);
+}
+
+// Public (no-auth) call endpoints
+export type PublicCallConfig = {
+  title: string;
+  voice: string;
+  scriptIntro: string | null;
+  scheduledAt: string | null;
+  isOpen: boolean;
+  workspaceId: number | null;
+  requireEmail: boolean;
+  questions: Array<{ id: number; prompt: string }>;
+};
+
+export async function getPublicCallConfig(token: string) {
+  return apiRequest<PublicCallConfig>(`/call-flows/public/${encodeURIComponent(token)}`);
+}
+
+export type CallTurnResponse = {
+  replyText: string;
+  audioBase64: string;
+  mimeType: string;
+  done: boolean;
+  transcribed?: string;
+};
+
+export async function startCallSession(
+  token: string,
+  args?: { callerName?: string; callerEmail?: string },
+) {
+  return apiRequest<CallTurnResponse & { callSessionId: number; voice: string }>(
+    `/call-flows/public/${encodeURIComponent(token)}/session`,
+    { method: "POST", body: JSON.stringify(args ?? {}) },
+  );
+}
+
+export async function callTurn(
+  token: string,
+  body: { callSessionId: number; audioBase64?: string; mimeType?: string; text?: string },
+) {
+  return apiRequest<CallTurnResponse>(
+    `/call-flows/public/${encodeURIComponent(token)}/turn`,
+    { method: "POST", body: JSON.stringify(body) },
+  );
+}
+
+export async function completeCallSession(
+  token: string,
+  body: { callSessionId: number; transcript?: Array<{ role: string; text: string }> },
+) {
+  return apiRequest<CallSessionResult>(
+    `/call-flows/public/${encodeURIComponent(token)}/complete`,
+    { method: "POST", body: JSON.stringify(body) },
+  );
 }

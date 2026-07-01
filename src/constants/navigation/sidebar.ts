@@ -4,6 +4,7 @@ import {
   Layers,
   LayoutDashboard,
   Megaphone,
+  PhoneCall,
   ServerCog,
   Sparkles,
   Workflow,
@@ -45,6 +46,11 @@ export const navigationSidebarItems: NavigationItem[] = [
     name: "Campaign",
     icon: Megaphone,
     href: "/campaign",
+  },
+  {
+    name: "Call Flows",
+    icon: PhoneCall,
+    href: "/call-flows",
   },
   {
     name: "Flowmo AI",
