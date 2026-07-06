@@ -298,6 +298,7 @@ function CallFlowForm({
       : [{ prompt: "", expectedAnswer: "", weight: 1 }],
   );
   const [submitting, setSubmitting] = useState(false);
+  const [step, setStep] = useState(0);
 
   useEffect(() => {
     listWorkspaces()
@@ -404,14 +405,61 @@ function CallFlowForm({
     }
   };
 
+  const STEPS = [
+    { key: "basics", label: "Basics" },
+    { key: "delivery", label: "Delivery" },
+    { key: "interview", label: "Interview" },
+  ];
+  const isLast = step === STEPS.length - 1;
+
+  const validateStep = (s: number) => {
+    if (s === 0 && !title.trim()) {
+      toast.error("Title is required");
+      return false;
+    }
+    return true;
+  };
+  const goNext = () => {
+    if (validateStep(step)) setStep((s) => Math.min(s + 1, STEPS.length - 1));
+  };
+  const goBack = () => setStep((s) => Math.max(s - 1, 0));
+
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{flow ? "Edit call flow" : "New call flow"}</DialogTitle>
+          <div className="mt-3 flex items-center gap-2">
+            {STEPS.map((st, i) => (
+              <div
+                key={st.key}
+                className="flex flex-1 items-center gap-2 last:flex-none"
+              >
+                <div
+                  className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
+                    i <= step
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground"
+                  }`}
+                >
+                  {i + 1}
+                </div>
+                <span
+                  className={`text-xs font-medium ${
+                    i === step ? "text-foreground" : "text-muted-foreground"
+                  }`}
+                >
+                  {st.label}
+                </span>
+                {i < STEPS.length - 1 && <div className="h-px flex-1 bg-border" />}
+              </div>
+            ))}
+          </div>
         </DialogHeader>
 
         <div className="space-y-4">
+          {step === 0 && (
+            <>
           <div>
             <Label>Title *</Label>
             <Input
@@ -549,7 +597,11 @@ function CallFlowForm({
               <span>Faster (2×)</span>
             </div>
           </div>
+            </>
+          )}
 
+          {step === 1 && (
+            <>
           <div>
             <Label className="flex items-center gap-1.5">
               <Briefcase className="h-3.5 w-3.5" /> Workspace
@@ -619,7 +671,11 @@ function CallFlowForm({
               The people you expect to take this call. There's always an open shareable link too.
             </p>
           </div>
+            </>
+          )}
 
+          {step === 2 && (
+            <>
           <div>
             <Label>System instruction *</Label>
             <Textarea
@@ -707,15 +763,27 @@ function CallFlowForm({
               Receives <code>call_flow.created</code> and <code>call.completed</code> (with scores) events.
             </p>
           </div>
+            </>
+          )}
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button onClick={() => void handleSubmit()} disabled={submitting}>
-            {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : flow ? "Save" : "Create"}
-          </Button>
+          {step === 0 ? (
+            <Button variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+          ) : (
+            <Button variant="outline" onClick={goBack}>
+              Back
+            </Button>
+          )}
+          {isLast ? (
+            <Button onClick={() => void handleSubmit()} disabled={submitting}>
+              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : flow ? "Save" : "Create"}
+            </Button>
+          ) : (
+            <Button onClick={goNext}>Next</Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

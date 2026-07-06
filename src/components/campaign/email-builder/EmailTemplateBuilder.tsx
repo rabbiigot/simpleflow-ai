@@ -427,9 +427,7 @@ export default function EmailTemplateBuilder({
                   flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium transition-colors
                   rounded-t-lg border border-b-0 relative
                   ${isActive
-                    ? tab.key === "code"
-                      ? "bg-[#1e1e1e] text-[#cccccc] border-border z-10"
-                      : "bg-white text-foreground border-border z-10"
+                    ? "bg-background text-foreground border-border z-10"
                     : "bg-muted/60 text-muted-foreground border-transparent hover:text-foreground hover:bg-muted"
                   }
                 `}
@@ -448,7 +446,7 @@ export default function EmailTemplateBuilder({
                     style={{
                       background: "transparent",
                       borderBottomRightRadius: 8,
-                      boxShadow: `3px 3px 0 0 ${tab.key === "code" ? "#1e1e1e" : "white"}, 4px 4px 0 0 hsl(var(--border))`,
+                      boxShadow: `3px 3px 0 0 var(--background), 4px 4px 0 0 var(--background)`,
                     }}
                   />
                 )}
@@ -459,7 +457,7 @@ export default function EmailTemplateBuilder({
                     style={{
                       background: "transparent",
                       borderBottomLeftRadius: 8,
-                      boxShadow: `-3px 3px 0 0 ${tab.key === "code" ? "#1e1e1e" : "white"}, -4px 4px 0 0 hsl(var(--border))`,
+                      boxShadow: `-3px 3px 0 0 var(--background), -4px 4px 0 0 var(--background)`,
                     }}
                   />
                 )}
@@ -514,24 +512,22 @@ export default function EmailTemplateBuilder({
             <>
               {/* Panel content */}
               <div
-                className={`w-full md:w-80 border-b md:border-b-0 md:border-r shrink-0 flex flex-col ${
-                  activeTab === "code" ? "bg-[#1e1e1e]" : "bg-white"
-                }`}
+                className="w-full md:w-80 border-b md:border-b-0 md:border-r shrink-0 flex flex-col bg-background"
               >
                 {activeTab === "code" ? (
                   /* Code editor — fills entire panel, no padding */
                   <div className="flex flex-col flex-1 min-h-0">
                     {/* Editor toolbar */}
-                    <div className="flex items-center justify-between px-2 py-1 bg-[#252526] border-b border-[#3c3c3c]">
+                    <div className="flex items-center justify-between px-2 py-1 bg-background border-b border-border">
                       <div className="flex items-center gap-1.5">
-                        <Code className="h-3 w-3 text-[#858585]" />
-                        <span className="text-[10px] text-[#cccccc] font-medium">template.html</span>
+                        <Code className="h-3 w-3 text-muted-foreground" />
+                        <span className="text-[10px] text-foreground font-medium">template.html</span>
                       </div>
                       <div className="flex items-center gap-0.5">
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-6 px-2 text-[10px] font-semibold text-emerald-400 hover:text-emerald-300 hover:bg-[#3c3c3c]"
+                          className="h-6 px-2 text-[10px] font-semibold text-emerald-600 hover:text-emerald-700 hover:bg-muted"
                           onClick={applyCustomHtml}
                           title="Apply this HTML as the template"
                         >
@@ -540,7 +536,7 @@ export default function EmailTemplateBuilder({
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-6 w-6 text-[#858585] hover:text-[#cccccc] hover:bg-[#3c3c3c]"
+                          className="h-6 w-6 text-muted-foreground hover:text-foreground hover:bg-muted"
                           onClick={() => {
                             navigator.clipboard.writeText(codeValue);
                             toast.success("HTML copied");
@@ -552,7 +548,7 @@ export default function EmailTemplateBuilder({
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-6 w-6 text-[#858585] hover:text-[#cccccc] hover:bg-[#3c3c3c]"
+                          className="h-6 w-6 text-muted-foreground hover:text-foreground hover:bg-muted"
                           onClick={() => setCodeFullscreen(true)}
                           title="Fullscreen"
                         >

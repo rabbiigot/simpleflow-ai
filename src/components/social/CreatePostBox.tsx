@@ -6,7 +6,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textArea";
 import { ImageWithLoader } from "@/components/ui/image-loader";
@@ -122,8 +121,33 @@ export default function CreatePostBox({
             <div className="flex items-center justify-between gap-2">
               <div className="flex min-w-0 items-center gap-2">
                 <Select value={selectedValue} onValueChange={setSelectedValue}>
-                  <SelectTrigger className="h-8 w-auto gap-1.5 text-xs">
-                    <SelectValue />
+                  <SelectTrigger className="h-8 w-auto max-w-[160px] gap-1.5 text-xs">
+                    {selectedValue === "public" ? (
+                      <span className="flex items-center gap-1.5 truncate">
+                        <Globe className="h-3.5 w-3.5 shrink-0" />
+                        <span className="truncate">
+                          {orgName ? `Public (${orgName})` : "Public"}
+                        </span>
+                      </span>
+                    ) : (
+                      (() => {
+                        const ch = channels.find(
+                          (c) => String(c.id) === selectedValue,
+                        );
+                        const { Icon } = getChannelIcon(ch?.icon ?? "hash");
+                        const label = ch
+                          ? ch.name.length > 6
+                            ? `${ch.name.slice(0, 6)}...`
+                            : ch.name
+                          : "Channel";
+                        return (
+                          <span className="flex items-center gap-1.5 truncate">
+                            <Icon className="h-3.5 w-3.5 shrink-0" />
+                            <span className="truncate">{label}</span>
+                          </span>
+                        );
+                      })()
+                    )}
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="public">

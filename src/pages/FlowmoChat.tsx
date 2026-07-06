@@ -7,6 +7,9 @@ import { getFlowmoTour, SpotlightOverlay } from "@/components/layout/AI/TourGuid
 import { ImageWithLoader } from "@/components/ui/image-loader";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useIsDark } from "@/hooks/use-is-dark";
+import chatDarkBg from "@/assets/chat-darkmode-bg.png";
+import chatLightBg from "@/assets/chat-lightmode-bg.png";
 import { speakFlowmo } from "@/lib/flowmo-voice";
 import {
   chatAi,
@@ -323,6 +326,7 @@ const FlowmoChat = () => {
   // ── Local state ──
   const [inputText, setInputText] = useState("");
   const [isSending, setIsSending] = useState(false);
+  const isDark = useIsDark();
   const [selectedWorkspace, setSelectedWorkspace] = useState<Workspace | null>(null);
   const [showWorkspacePicker, setShowWorkspacePicker] = useState(false);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
@@ -880,8 +884,12 @@ const FlowmoChat = () => {
           </div>
 
           {/* Messages / Empty State */}
-          <div className="flex-1 min-h-0">
-            <ScrollArea className="h-full min-h-0">
+          <div className="relative flex-1 min-h-0">
+            <div
+              className="pointer-events-none absolute inset-0 bg-cover bg-center bg-no-repeat opacity-25"
+              style={{ backgroundImage: `url(${isDark ? chatDarkBg : chatLightBg})` }}
+            />
+            <ScrollArea className="relative h-full min-h-0">
               <div className="max-w-3xl mx-auto p-4 space-y-3">
                 {/* ── Empty state ── */}
                 {!hasUserMessages && (

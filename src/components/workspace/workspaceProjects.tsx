@@ -123,6 +123,8 @@ export default function WorkspaceProjects() {
   const [newColumnName, setNewColumnName] = useState("");
   const [isAddingColumn, setIsAddingColumn] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  // Workspace title is truncated beside the back arrow; click to expand it fully.
+  const [titleExpanded, setTitleExpanded] = useState(false);
   const [showFilterCard, setShowFilterCard] = useState(false);
   const [isEditingDescription, setIsEditingDescription] = useState(false);
   const [descriptionDraft, setDescriptionDraft] = useState("");
@@ -1201,6 +1203,7 @@ export default function WorkspaceProjects() {
         }`}
         data-tour="workspace-header"
       >
+        <div className="flex min-w-0 flex-1 items-start gap-2">
         <Button
           variant="ghost"
           size="sm"
@@ -1211,7 +1214,15 @@ export default function WorkspaceProjects() {
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div className="min-w-0 flex-1">
-          <h1 className="text-2xl font-bold md:text-3xl break-words">{workspace.name}</h1>
+          <h1
+            onClick={() => setTitleExpanded((v) => !v)}
+            title={workspace.name}
+            className={`cursor-pointer text-2xl font-bold md:text-3xl ${
+              titleExpanded ? "break-words" : "truncate"
+            }`}
+          >
+            {workspace.name}
+          </h1>
           {isEditingDescription ? (
             <div className="mt-1 flex items-start gap-2 max-w-lg">
               <div className="flex-1 space-y-1">
@@ -1292,12 +1303,13 @@ export default function WorkspaceProjects() {
             </button>
           )}
         </div>
+        </div>
         <div className="flex flex-wrap items-center gap-2 shrink-0 md:ml-auto">
           <div className="flex items-center gap-1 rounded-lg border p-0.5" data-tour="workspace-view-toggle">
             <Button
               variant={viewMode === "board" ? "default" : "ghost"}
               size="sm"
-              className="h-7 px-2"
+              className="h-8 px-2.5"
               onClick={() => handleViewModeChange("board")}
             >
               <LayoutGrid className="h-4 w-4" />
@@ -1305,7 +1317,7 @@ export default function WorkspaceProjects() {
             <Button
               variant={viewMode === "list" ? "default" : "ghost"}
               size="sm"
-              className="h-7 px-2"
+              className="h-8 px-2.5"
               onClick={() => handleViewModeChange("list")}
             >
               <List className="h-4 w-4" />

@@ -8,6 +8,9 @@ import { ImageWithLoader } from "@/components/ui/image-loader";
 import { Button } from "@/components/ui/button";
 import { EmojiPicker } from "@/components/ui/emoji-picker";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useIsDark } from "@/hooks/use-is-dark";
+import chatDarkBg from "@/assets/chat-darkmode-bg.png";
+import chatLightBg from "@/assets/chat-lightmode-bg.png";
 import { useAiEvents } from "@/hooks/use-ai-events";
 import { speakFlowmo } from "@/lib/flowmo-voice";
 import {
@@ -809,6 +812,7 @@ const FlowmoAssistantContainer: React.FC<FlowmoAssistantContainerProps> = ({
 
   const [inputText, setInputText] = useState("");
   const [isSending, setIsSending] = useState(false);
+  const isDark = useIsDark();
   const [energy, setEnergy] = useState<AiEnergyStatus | null>(null);
   const refreshEnergy = useCallback(() => {
     const uid = getCurrentUserId();
@@ -2489,8 +2493,12 @@ const FlowmoAssistantContainer: React.FC<FlowmoAssistantContainerProps> = ({
                 </div>
               </div>
 
-              <div className="flex-1 min-h-0 bg-background">
-                <ScrollArea className="h-full min-h-0">
+              <div className="relative flex-1 min-h-0 bg-background">
+                <div
+                  className="pointer-events-none absolute inset-0 bg-cover bg-center bg-no-repeat opacity-25"
+                  style={{ backgroundImage: `url(${isDark ? chatDarkBg : chatLightBg})` }}
+                />
+                <ScrollArea className="relative h-full min-h-0">
                   <div className="p-3 space-y-3">
                     {hasOlderChatMessages && (
                       <div className="flex justify-center pb-1">

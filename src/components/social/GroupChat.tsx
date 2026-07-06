@@ -13,6 +13,9 @@ import {
 import { EmojiPicker } from "@/components/ui/emoji-picker";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useIsDark } from "@/hooks/use-is-dark";
+import chatDarkBg from "@/assets/chat-darkmode-bg.png";
+import chatLightBg from "@/assets/chat-lightmode-bg.png";
 import { useChatSocket, type ChatSocketMessage } from "@/hooks/use-chat-socket";
 import {
   getChatMessages,
@@ -107,6 +110,7 @@ export default function GroupChat({
   }, [fillParent]);
 
   const [messages, setMessages] = useState<ChatMessageData[]>([]);
+  const isDark = useIsDark();
   const [draft, setDraft] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [showMembers, setShowMembers] = useState(false);
@@ -380,8 +384,12 @@ export default function GroupChat({
       </div>
 
       {/* ---- Messages ---- */}
-      <div className="min-h-0 flex-1">
-        <ScrollArea className="h-full">
+      <div className="relative min-h-0 flex-1">
+        <div
+          className="pointer-events-none absolute inset-0 bg-cover bg-center bg-no-repeat opacity-25"
+          style={{ backgroundImage: `url(${isDark ? chatDarkBg : chatLightBg})` }}
+        />
+        <ScrollArea className="relative h-full">
           <div className="space-y-3 p-3 md:p-4">
             {isLoading ? (
               <div className="flex items-center justify-center py-8">
@@ -424,8 +432,8 @@ export default function GroupChat({
                         </AvatarFallback>
                       </Avatar>
                       <div className="min-w-0 flex-1">
-                        <span className="text-[11px] text-muted-foreground">
-                          <span className="font-medium text-foreground/80">
+                        <span className="text-[11px] text-foreground/80">
+                          <span className="font-medium text-foreground">
                             {name}
                           </span>{" "}
                           {activityText}
@@ -894,7 +902,7 @@ export default function GroupChat({
             size="sm"
             onClick={() => void handleSend()}
             disabled={!draft.trim() && !pendingChatMedia}
-            className="h-10 rounded-full mb-1.5 bg-blue-600 hover:bg-blue-700"
+            className="h-10 rounded-full mb-1.5 bg-blue-600 text-white hover:bg-blue-700"
           >
             <Send className="h-4 w-4" />
           </Button>

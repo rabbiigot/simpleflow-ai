@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { BarChart3, Bell, LogOut, Megaphone, MessageSquarePlus, Settings, Workflow } from "lucide-react";
+import { BarChart3, Bell, LogOut, Megaphone, MessageSquarePlus, PhoneCall, Settings, Workflow } from "lucide-react";
 import logoOnly from "@/assets/logoOnly.png";
 import nameLogo from "@/assets/namelogo.png";
 import nameLogoWhite from "@/assets/namelogo-white.svg";
@@ -218,6 +218,10 @@ const MobileTopBar: React.FC<MobileTopBarProps> = ({
                 Campaign
               </DropdownMenuItem>
             )}
+            <DropdownMenuItem onClick={() => navigate({ to: "/call-flows" })}>
+              <PhoneCall className="h-4 w-4" />
+              Call Flows
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem variant="destructive" onClick={handleLogout}>
               <LogOut className="h-4 w-4" />

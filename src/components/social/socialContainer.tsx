@@ -35,9 +35,11 @@ import {
   ChevronDown,
   ImagePlus,
   Loader2,
+  Mail,
   MessageSquare,
   MoreHorizontal,
   Pencil,
+  Phone,
   Plus,
   Quote,
   Rss,
@@ -107,10 +109,14 @@ export default function SocialPage() {
   const [pageSize] = useState(8);
   const [hasMore, setHasMore] = useState(true);
   const [showCreateChannel, setShowCreateChannel] = useState(false);
-  const [activeChannel, setActiveChannel] = useState<ChatChannel | null>(null);
-  const [channelViewMode, setChannelViewMode] = useState<"chat" | "feed" | null>(null);
+  // A channel is "selected" from the left list; the center then shows Feed/Chat
+  // as tabs (default Feed). No channel selected = the global community feed.
+  const [selectedChannel, setSelectedChannel] = useState<ChatChannel | null>(null);
+  const [channelTab, setChannelTab] = useState<"feed" | "chat">("feed");
   const [feedChannelId, setFeedChannelId] = useState<string | null>(null);
-  const [expandedChannelId, setExpandedChannelId] = useState<string | null>(null);
+  // Members card shows 9 by default; "Show more" reveals the rest (scrollable).
+  const [showAllMembers, setShowAllMembers] = useState(false);
+  const MEMBERS_PREVIEW = 9;
   const [showEditChannelDialog, setShowEditChannelDialog] = useState(false);
   const [editChannelData, setEditChannelData] = useState<{
     id: string;
@@ -157,6 +163,8 @@ export default function SocialPage() {
           firstName: data.firstName || prev.firstName,
           lastName: data.lastName || prev.lastName,
           email: data.email || prev.email,
+          phoneNumber:
+            (data as { phoneNumber?: string }).phoneNumber || prev.phoneNumber,
           bio: data.bio || prev.bio || "",
           avatarUrl: data.avatarUrl || prev.avatarUrl || "",
         }));
@@ -256,7 +264,7 @@ export default function SocialPage() {
   }, [addSocialListener, currentUserId]);
 
   useEffect(() => {
-    if (activeChannel && channelViewMode === "chat") return; // don't infinite-scroll while in chat
+    if (selectedChannel && channelTab === "chat") return; // don't infinite-scroll while in chat
     const node = loadMoreRef.current;
     if (!node) return;
 
@@ -273,7 +281,7 @@ export default function SocialPage() {
 
     observer.observe(node);
     return () => observer.disconnect();
-  }, [activeChannel, channelViewMode, hasMore, isLoading, isLoadingMore, page, loadPage]);
+  }, [selectedChannel, channelTab, hasMore, isLoading, isLoadingMore, page, loadPage]);
 
   /* ---- post actions ---- */
 
@@ -462,13 +470,10 @@ export default function SocialPage() {
     if (!currentUserId) return;
     try {
       await deleteChatChannel(channelId, currentUserId);
-      if (activeChannel && String(activeChannel.id) === channelId) {
-        setActiveChannel(null);
-        setChannelViewMode(null);
-      }
-      if (feedChannelId === channelId) {
+      if (selectedChannel && String(selectedChannel.id) === channelId) {
+        setSelectedChannel(null);
+        setChannelTab("feed");
         setFeedChannelId(null);
-        setChannelViewMode(null);
       }
       await loadChannels();
     } catch (err) {
@@ -514,12 +519,38 @@ export default function SocialPage() {
     );
   };
 
+  /* ---- channel selection (center Feed/Chat tabs) ---- */
+
+  const selectChannel = (ch: ChatChannel) => {
+    setSelectedChannel(ch);
+    setChannelTab("feed"); // default tab is the feed
+    setFeedChannelId(String(ch.id));
+    setShowAllMembers(false);
+    setPage(1);
+    setHasMore(true);
+    if (isMobile) setChannelsOpen(false);
+  };
+
+  const deselectChannel = () => {
+    setSelectedChannel(null);
+    setChannelTab("feed");
+    setFeedChannelId(null);
+    setPage(1);
+    setHasMore(true);
+  };
+
+  const showFeedTab = () => {
+    setChannelTab("feed");
+    if (selectedChannel) setFeedChannelId(String(selectedChannel.id));
+    setPage(1);
+    setHasMore(true);
+  };
+
+  const showChatTab = () => setChannelTab("chat");
+
   const renderChannelItem = (ch: (typeof channels)[number]) => {
     const chId = String(ch.id);
-    const isActiveChat = activeChannel?.id === ch.id && channelViewMode === "chat";
-    const isActiveFeed = feedChannelId === chId && channelViewMode === "feed";
-    const isActive = isActiveChat || isActiveFeed;
-    const isExpanded = expandedChannelId === chId;
+    const isActive = String(selectedChannel?.id ?? "") === chId;
     const isFav = isChannelFavorite(ch);
     const isCreator = String(ch.createdById) === currentUserId;
     const isAdmin = ch.members.some(
@@ -527,136 +558,98 @@ export default function SocialPage() {
     );
 
     return (
-      <div key={ch.id}>
-        <div className="group flex items-center">
-          <button
-            type="button"
-            onClick={() => setExpandedChannelId(isExpanded ? null : chId)}
-            className={`flex flex-1 items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm transition-colors ${
-              isActive
-                ? "bg-primary/15 font-medium text-primary"
-                : "text-muted-foreground hover:bg-accent hover:text-foreground"
-            }`}
-          >
-            {renderChannelIcon(ch, isActive)}
-            <div className="min-w-0 flex-1">
-              <span className="block truncate" title={ch.name}>{ch.name.length > 25 ? `${ch.name.slice(0, 25)}...` : ch.name}</span>
-              {ch.description && (
-                <span className="block truncate text-[10px] text-muted-foreground/70">
-                  {ch.description}
-                </span>
-              )}
-            </div>
-          </button>
-
-          {/* Favorite + Context menu */}
-          <div className="flex items-center shrink-0">
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                void handleToggleFavorite(chId);
-              }}
-              className={`p-1 rounded transition-colors ${
-                isFav
-                  ? "text-amber-500"
-                  : "text-muted-foreground/40 opacity-0 group-hover:opacity-100 hover:text-amber-500"
-              }`}
-              title={isFav ? "Remove from favorites" : "Add to favorites"}
-            >
-              <Star className={`h-3.5 w-3.5 ${isFav ? "fill-amber-500" : ""}`} />
-            </button>
-
-            {(isAdmin || isCreator) && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button
-                    type="button"
-                    className="p-1 rounded text-muted-foreground/40 opacity-0 group-hover:opacity-100 hover:text-foreground transition-colors"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <MoreHorizontal className="h-3.5 w-3.5" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setIconUploadChannelId(chId);
-                      setShowEditChannelDialog(true);
-                      setEditChannelData({
-                        id: chId,
-                        name: ch.name,
-                        description: ch.description || "",
-                        icon: ch.icon || "hash",
-                      });
-                    }}
-                  >
-                    <Pencil className="h-3.5 w-3.5 mr-2" />
-                    Edit Channel
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setIconUploadChannelId(chId);
-                      setTimeout(() => iconInputRef.current?.click(), 0);
-                    }}
-                  >
-                    <ImagePlus className="h-3.5 w-3.5 mr-2" />
-                    Upload Icon Image
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      void handleArchiveChannel(chId);
-                    }}
-                    className="text-destructive focus:text-destructive"
-                  >
-                    <Archive className="h-3.5 w-3.5 mr-2" />
-                    Archive Channel
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+      <div key={ch.id} className="group flex items-center">
+        <button
+          type="button"
+          onClick={() => selectChannel(ch)}
+          className={`flex flex-1 items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm transition-colors ${
+            isActive
+              ? "bg-primary/15 font-medium text-primary"
+              : "text-muted-foreground hover:bg-accent hover:text-foreground"
+          }`}
+        >
+          {renderChannelIcon(ch, isActive)}
+          <div className="min-w-0 flex-1">
+            <span className="block truncate" title={ch.name}>{ch.name.length > 25 ? `${ch.name.slice(0, 25)}...` : ch.name}</span>
+            {ch.description && (
+              <span className="block truncate text-[10px] text-muted-foreground/70">
+                {ch.description}
+              </span>
             )}
           </div>
+        </button>
+
+        {/* Favorite + Context menu */}
+        <div className="flex items-center shrink-0">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              void handleToggleFavorite(chId);
+            }}
+            className={`p-1 rounded transition-colors ${
+              isFav
+                ? "text-amber-500"
+                : "text-muted-foreground/40 opacity-0 group-hover:opacity-100 hover:text-amber-500"
+            }`}
+            title={isFav ? "Remove from favorites" : "Add to favorites"}
+          >
+            <Star className={`h-3.5 w-3.5 ${isFav ? "fill-amber-500" : ""}`} />
+          </button>
+
+          {(isAdmin || isCreator) && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="p-1 rounded text-muted-foreground/40 opacity-0 group-hover:opacity-100 hover:text-foreground transition-colors"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <MoreHorizontal className="h-3.5 w-3.5" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIconUploadChannelId(chId);
+                    setShowEditChannelDialog(true);
+                    setEditChannelData({
+                      id: chId,
+                      name: ch.name,
+                      description: ch.description || "",
+                      icon: ch.icon || "hash",
+                    });
+                  }}
+                >
+                  <Pencil className="h-3.5 w-3.5 mr-2" />
+                  Edit Channel
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIconUploadChannelId(chId);
+                    setTimeout(() => iconInputRef.current?.click(), 0);
+                  }}
+                >
+                  <ImagePlus className="h-3.5 w-3.5 mr-2" />
+                  Upload Icon Image
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void handleArchiveChannel(chId);
+                  }}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Archive className="h-3.5 w-3.5 mr-2" />
+                  Archive Channel
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
-        {isExpanded && (
-          <div className="ml-9 space-y-0.5 py-1">
-            <button
-              type="button"
-              onClick={() => {
-                setActiveChannel(null);
-                setFeedChannelId(chId);
-                setChannelViewMode("feed");
-                setExpandedChannelId(null);
-                setPage(1);
-                setHasMore(true);
-              }}
-              className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs transition-colors ${
-                isActiveFeed ? "bg-primary/10 text-primary font-medium" : "text-muted-foreground hover:bg-accent hover:text-foreground"
-              }`}
-            >
-              <Rss className="h-3 w-3" />
-              Feed
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setActiveChannel(ch);
-                setFeedChannelId(null);
-                setChannelViewMode("chat");
-                setExpandedChannelId(null);
-              }}
-              className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs transition-colors ${
-                isActiveChat ? "bg-primary/10 text-primary font-medium" : "text-muted-foreground hover:bg-accent hover:text-foreground"
-              }`}
-            >
-              <MessageSquare className="h-3 w-3" />
-              Chat
-            </button>
-          </div>
-        )}
       </div>
     );
   };
@@ -666,7 +659,7 @@ export default function SocialPage() {
   return (
     <div className="page-shell">
       <div
-        className="@container/social mx-auto w-full max-w-8xl"
+        className="@container/social mx-auto w-full min-w-0 max-w-8xl overflow-x-hidden"
         style={navCollapsed ? { maxWidth: "calc(100% - 11.5rem)" } : undefined}
       >
         <div className="mb-3">
@@ -676,8 +669,8 @@ export default function SocialPage() {
         <div className="grid gap-3 @[700px]/social:grid-cols-[minmax(240px,320px)_minmax(0,1fr)] @[1100px]/social:grid-cols-[minmax(240px,320px)_minmax(0,1fr)_minmax(240px,320px)]">
           {/* ====== Left sidebar: Groups + Profile (collapsed layout) ====== */}
           <aside
-            className={`space-y-4 lg:sticky lg:top-4 lg:self-start ${
-              activeChannel && channelViewMode === "chat" ? "max-md:hidden" : ""
+            className={`min-w-0 space-y-4 lg:sticky lg:top-4 lg:self-start ${
+              selectedChannel && channelTab === "chat" ? "max-md:hidden" : ""
             }`}
           >
             {/* Groups / Teams card */}
@@ -790,43 +783,59 @@ export default function SocialPage() {
           </aside>
 
           {/* ====== Main content ====== */}
-          <main className="space-y-4">
-            {activeChannel && channelViewMode === "chat" ? (
+          <main className="min-w-0 space-y-4">
+            {selectedChannel && (
+              /* ---- Channel header + Feed/Chat tabs (center) ---- */
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 gap-1.5 px-2 text-muted-foreground hover:text-foreground"
+                  onClick={deselectChannel}
+                >
+                  <ArrowLeft className="h-3.5 w-3.5" />
+                  All Posts
+                </Button>
+                <div className="flex flex-1 items-center gap-1 rounded-lg border border-border bg-card p-1">
+                  <button
+                    type="button"
+                    onClick={showFeedTab}
+                    className={`flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                      channelTab === "feed"
+                        ? "bg-primary/15 text-primary"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <Rss className="h-4 w-4" /> Feed
+                  </button>
+                  <button
+                    type="button"
+                    onClick={showChatTab}
+                    className={`flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                      channelTab === "chat"
+                        ? "bg-primary/15 text-primary"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <MessageSquare className="h-4 w-4" /> Chat
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {selectedChannel && channelTab === "chat" ? (
               /* ---- Channel chat view ---- */
               <GroupChat
-                channel={activeChannel}
+                channel={selectedChannel}
                 currentUserId={currentUserId}
                 currentUserName={fullName}
                 currentUserAvatar={avatarSrc}
                 currentUserInitials={initials}
-                onBack={() => { setActiveChannel(null); setChannelViewMode(null); setFeedChannelId(null); void loadChannels(); }}
+                onBack={deselectChannel}
               />
             ) : (
-              /* ---- Feed view ---- */
+              /* ---- Feed view (global, or channel-scoped when a channel is selected) ---- */
               <>
-                {feedChannelId && channelViewMode === "feed" && (
-                  <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2.5">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 gap-1.5 px-2 text-muted-foreground hover:text-foreground"
-                      onClick={() => {
-                        setFeedChannelId(null);
-                        setChannelViewMode(null);
-                        setPage(1);
-                        setHasMore(true);
-                      }}
-                    >
-                      <ArrowLeft className="h-3.5 w-3.5" />
-                      All Posts
-                    </Button>
-                    <div className="h-4 w-px bg-border" />
-                    <Rss className="h-4 w-4 text-primary" />
-                    <span className="text-sm font-medium text-foreground">
-                      #{(() => { const n = channels.find((c) => String(c.id) === feedChannelId)?.name || "Channel"; return n.length > 30 ? `${n.slice(0, 30)}...` : n; })()}
-                    </span>
-                  </div>
-                )}
                 {error && (
                   <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700">
                     <MessageSquare className="h-4 w-4 shrink-0" />
@@ -931,36 +940,114 @@ export default function SocialPage() {
             )}
           </main>
 
-          {/* ====== Right sidebar: Profile (hidden when Flowmo is open) ====== */}
+          {/* ====== Right sidebar: Profile + channel members ====== */}
           <aside className="hidden @[1100px]/social:block @[1100px]/social:sticky @[1100px]/social:top-4 @[1100px]/social:self-start space-y-4">
+            {/* Profile card — centered avatar, own email & number */}
             <Card className="gap-0 py-0">
-              <CardContent className="p-3">
+              <CardContent className="flex flex-col items-center p-4 text-center">
                 <button
                   type="button"
                   onClick={() => navigate({ to: "/social/profile" })}
-                  className="flex w-full items-center gap-3 rounded-md p-1.5 text-left hover:bg-muted"
+                  className="flex w-full flex-col items-center gap-2 rounded-md p-1.5 hover:bg-muted"
                 >
-                  <Avatar className="h-12 w-12 shrink-0">
+                  <Avatar className="h-20 w-20 shrink-0">
                     <AvatarImage src={avatarSrc} />
                     <AvatarFallback>{initials}</AvatarFallback>
                   </Avatar>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold text-foreground truncate">
-                      {fullName}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      View profile
-                    </p>
-                  </div>
+                  <p className="text-base font-semibold text-foreground">
+                    {fullName}
+                  </p>
                 </button>
+
+                {/* Contact card: phone (only if present) + email */}
+                <div className="mt-3 w-full space-y-2 rounded-lg border border-border p-3 text-left">
+                  {profile.phoneNumber && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Phone className="h-4 w-4 shrink-0 text-primary" />
+                      <span className="truncate">{profile.phoneNumber}</span>
+                    </div>
+                  )}
+                  {profile.email && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Mail className="h-4 w-4 shrink-0 text-primary" />
+                      <span className="truncate">{profile.email}</span>
+                    </div>
+                  )}
+                </div>
+
                 {profile.bio && (
-                  <div className="mt-2 flex items-start gap-1.5 text-xs leading-relaxed text-muted-foreground">
+                  <div className="mt-2 flex items-start gap-1.5 text-left text-xs leading-relaxed text-muted-foreground">
                     <Quote className="mt-0.5 h-3 w-3 shrink-0 scale-x-[-1] text-blue-500" />
                     <p className="line-clamp-3">{profile.bio}</p>
                   </div>
                 )}
               </CardContent>
             </Card>
+
+            {/* Members of the selected channel — empty when no channel is selected */}
+            {selectedChannel && (
+              <Card className="gap-0 py-0">
+                <div className="flex items-center justify-between border-b border-border px-3 py-2.5">
+                  <span className="text-sm font-semibold">
+                    {selectedChannel.members.length}{" "}
+                    {selectedChannel.members.length === 1 ? "member" : "members"}
+                  </span>
+                </div>
+                <CardContent className="max-h-[420px] overflow-y-auto p-2">
+                  <div className="space-y-0.5">
+                    {(showAllMembers
+                      ? selectedChannel.members
+                      : selectedChannel.members.slice(0, MEMBERS_PREVIEW)
+                    ).map((m) => {
+                      const name =
+                        [m.user.firstName, m.user.lastName]
+                          .filter(Boolean)
+                          .join(" ") || m.user.email;
+                      const memInitials =
+                        `${m.user.firstName?.[0] || ""}${m.user.lastName?.[0] || ""}`.toUpperCase() ||
+                        "U";
+                      return (
+                        <button
+                          key={m.id}
+                          type="button"
+                          onClick={() =>
+                            navigate({
+                              to: "/social/profile/$userId",
+                              params: { userId: String(m.userId) },
+                            })
+                          }
+                          className="flex w-full items-center gap-2.5 rounded-md p-1.5 text-left hover:bg-muted"
+                        >
+                          <Avatar className="h-8 w-8 shrink-0">
+                            <AvatarImage src={m.user.avatarUrl || undefined} />
+                            <AvatarFallback>{memInitials}</AvatarFallback>
+                          </Avatar>
+                          <span className="min-w-0 flex-1 truncate text-sm text-foreground">
+                            {name}
+                          </span>
+                          {m.role === "ADMIN" && (
+                            <span className="shrink-0 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
+                              Admin
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+                {selectedChannel.members.length > MEMBERS_PREVIEW && (
+                  <button
+                    type="button"
+                    onClick={() => setShowAllMembers((v) => !v)}
+                    className="w-full border-t border-border px-3 py-2 text-center text-xs font-medium text-primary hover:bg-muted"
+                  >
+                    {showAllMembers
+                      ? "Show less"
+                      : `Show more (${selectedChannel.members.length - MEMBERS_PREVIEW})`}
+                  </button>
+                )}
+              </Card>
+            )}
           </aside>
         </div>
       </div>
