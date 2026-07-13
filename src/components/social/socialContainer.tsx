@@ -856,6 +856,7 @@ export default function SocialPage() {
                   isPosting={isPosting}
                   channels={channels}
                   orgName={orgName}
+                  activeChannelId={selectedChannel ? String(selectedChannel.id) : undefined}
                 />
                 </div>
 

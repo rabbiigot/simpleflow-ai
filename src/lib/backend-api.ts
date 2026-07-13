@@ -692,7 +692,15 @@ export async function createSocialPostWithMedia(
   if (visibility) formData.append("visibility", visibility);
 
   const url = resolveUrl("/social/posts/with-media");
-  const response = await fetch(url, { method: "POST", body: formData });
+  const token =
+    typeof window !== "undefined"
+      ? localStorage.getItem("simpleflow_token") || ""
+      : "";
+  const response = await fetch(url, {
+    method: "POST",
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: formData,
+  });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(normalizeErrorMessage(data, response.status));
   return data as SocialPost;
@@ -712,7 +720,15 @@ export async function sendChatMessageWithMedia(
   if (replyToId) formData.append("replyToId", replyToId);
 
   const url = resolveUrl(`/chat/channels/${encodeURIComponent(channelId)}/messages/with-media`);
-  const response = await fetch(url, { method: "POST", body: formData });
+  const token =
+    typeof window !== "undefined"
+      ? localStorage.getItem("simpleflow_token") || ""
+      : "";
+  const response = await fetch(url, {
+    method: "POST",
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: formData,
+  });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(normalizeErrorMessage(data, response.status));
   return data as ChatMessageData;

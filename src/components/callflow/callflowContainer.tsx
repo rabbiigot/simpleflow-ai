@@ -261,6 +261,16 @@ function toLocalInputValue(iso: string | null | undefined) {
   return new Date(d.getTime() - off * 60000).toISOString().slice(0, 16);
 }
 
+// 30-minute increments for the start-time dropdown
+const TIME_OPTIONS = Array.from({ length: 48 }, (_, i) => {
+  const h = Math.floor(i / 2);
+  const m = i % 2 === 0 ? "00" : "30";
+  const value = `${String(h).padStart(2, "0")}:${m}`;
+  const period = h < 12 ? "AM" : "PM";
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return { value, label: `${h12}:${m} ${period}` };
+});
+
 function CallFlowForm({
   flow,
   onClose,
@@ -426,7 +436,7 @@ function CallFlowForm({
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+      <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{flow ? "Edit call flow" : "New call flow"}</DialogTitle>
           <div className="mt-3 flex items-center gap-2">
@@ -457,7 +467,7 @@ function CallFlowForm({
           </div>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="space-y-6">
           {step === 0 && (
             <>
           <div>
@@ -469,109 +479,122 @@ function CallFlowForm({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label>Voice</Label>
-              <div className="flex gap-2">
-                <Select value={voice} onValueChange={setVoice}>
-                  <SelectTrigger className="flex-1">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {VOICES.map((v) => (
-                      <SelectItem key={v} value={v} className="capitalize">
-                        {v}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  onClick={handlePreviewVoice}
-                  disabled={previewing}
-                  title="Listen to a sample"
-                  aria-label="Listen to a sample"
-                >
-                  {previewing ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Play className="h-4 w-4" />
-                  )}
-                </Button>
-              </div>
-              <p className="mt-1 text-[11px] text-muted-foreground">
-                Tap play to hear this voice & speed.
-              </p>
+          {/* Voice model */}
+          <div>
+            <Label>Voice</Label>
+            <div className="flex gap-2">
+              <Select value={voice} onValueChange={setVoice}>
+                <SelectTrigger className="flex-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {VOICES.map((v) => (
+                    <SelectItem key={v} value={v} className="capitalize">
+                      {v}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={handlePreviewVoice}
+                disabled={previewing}
+                title="Listen to a sample"
+                aria-label="Listen to a sample"
+              >
+                {previewing ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Play className="h-4 w-4" />
+                )}
+              </Button>
             </div>
-            <div>
-              <Label>Start date (optional)</Label>
-              <div className="flex gap-2">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button
-                      type="button"
-                      className="flex h-9 flex-1 items-center gap-2 rounded-md border border-input bg-transparent px-3 text-sm transition-colors hover:border-foreground/20"
-                    >
-                      <CalendarIcon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                      {scheduledAt ? (
-                        new Date(scheduledAt).toLocaleDateString(undefined, {
-                          month: "short",
-                          day: "numeric",
-                          year: "numeric",
-                        })
-                      ) : (
-                        <span className="text-muted-foreground">Pick a date</span>
-                      )}
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-auto p-0">
-                    <CalendarWidget
-                      mode="single"
-                      captionLayout="dropdown"
-                      selected={scheduledAt ? new Date(scheduledAt) : undefined}
-                      onSelect={(date) => {
-                        if (!date) return setScheduledAt("");
-                        const yyyy = date.getFullYear();
-                        const mm = String(date.getMonth() + 1).padStart(2, "0");
-                        const dd = String(date.getDate()).padStart(2, "0");
-                        const time = scheduledAt.slice(11, 16) || "09:00";
-                        setScheduledAt(`${yyyy}-${mm}-${dd}T${time}`);
-                      }}
-                    />
-                    {scheduledAt && (
-                      <button
-                        type="button"
-                        onClick={() => setScheduledAt("")}
-                        className="w-full border-t px-3 py-2 text-left text-xs text-muted-foreground hover:bg-muted"
-                      >
-                        Clear date
-                      </button>
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              Tap play to hear this voice & speed.
+            </p>
+          </div>
+
+          {/* Start date + time — below the voice selection, full width so the
+              date picker has room (was cramped in the old 2-column grid). */}
+          <div>
+            <Label>Start date &amp; time (optional)</Label>
+            <div className="flex gap-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    className="flex h-9 flex-1 items-center gap-2 rounded-md border border-input bg-transparent px-3 text-sm transition-colors hover:border-foreground/20"
+                  >
+                    <CalendarIcon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                    {scheduledAt ? (
+                      new Date(scheduledAt).toLocaleDateString(undefined, {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      })
+                    ) : (
+                      <span className="text-muted-foreground">Pick a date</span>
                     )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                <div className="relative">
-                  <Clock className="pointer-events-none absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    type="time"
-                    aria-label="Start time"
-                    className="w-[130px] pl-8"
-                    value={scheduledAt.slice(11, 16) || ""}
-                    onChange={(e) => {
-                      const time = e.target.value || "09:00";
-                      const datePart =
-                        scheduledAt.slice(0, 10) ||
-                        new Date().toISOString().slice(0, 10);
-                      setScheduledAt(`${datePart}T${time}`);
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="start"
+                  sideOffset={6}
+                  className="w-auto overflow-hidden p-0"
+                >
+                  <CalendarWidget
+                    mode="single"
+                    captionLayout="dropdown"
+                    selected={scheduledAt ? new Date(scheduledAt) : undefined}
+                    onSelect={(date) => {
+                      if (!date) return setScheduledAt("");
+                      const yyyy = date.getFullYear();
+                      const mm = String(date.getMonth() + 1).padStart(2, "0");
+                      const dd = String(date.getDate()).padStart(2, "0");
+                      const time = scheduledAt.slice(11, 16) || "09:00";
+                      setScheduledAt(`${yyyy}-${mm}-${dd}T${time}`);
                     }}
                   />
-                </div>
-              </div>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Leave blank to allow calls anytime.
-              </p>
+                  {scheduledAt && (
+                    <button
+                      type="button"
+                      onClick={() => setScheduledAt("")}
+                      className="w-full border-t px-3 py-2 text-left text-xs text-muted-foreground hover:bg-muted"
+                    >
+                      Clear date
+                    </button>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <Select
+                value={scheduledAt.slice(11, 16) || undefined}
+                onValueChange={(time) => {
+                  const datePart =
+                    scheduledAt.slice(0, 10) ||
+                    new Date().toISOString().slice(0, 10);
+                  setScheduledAt(`${datePart}T${time}`);
+                }}
+              >
+                <SelectTrigger className="w-[140px]" aria-label="Start time">
+                  <span className="flex items-center gap-2 truncate">
+                    <Clock className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                    <SelectValue placeholder="Time" />
+                  </span>
+                </SelectTrigger>
+                <SelectContent className="max-h-64">
+                  {TIME_OPTIONS.map((t) => (
+                    <SelectItem key={t.value} value={t.value}>
+                      {t.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Leave blank to allow calls anytime.
+            </p>
           </div>
 
           <div>
@@ -629,7 +652,7 @@ function CallFlowForm({
               />
             )}
             <p className="mt-1 text-xs text-muted-foreground">
-              Each completed call becomes a task here, assigned to the caller if their email matches a member.
+              Completed calls log here as tasks, assigned by matching caller email.
             </p>
           </div>
 

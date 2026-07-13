@@ -23,8 +23,8 @@ type Turn = { role: "assistant" | "user"; text: string };
 
 // Per-answer recording cap keeps the uploaded audio well under the API body limit.
 const MAX_ANSWER_SECONDS = 60;
-const SILENCE_MS = 2500; // pause after this much silence once the caller has spoken
-const GRACE_MS = 4000; // after a pause, wait this long before auto-sending unless the caller continues
+const SILENCE_MS = 1000; // pause quickly once the caller stops speaking (snappy)
+const GRACE_MS = 1500; // brief window to auto-send unless the caller taps "Continue answer"
 
 function getToken(): string {
   if (typeof window === "undefined") return "";
@@ -441,8 +441,8 @@ export default function PublicCall() {
               {mode === "speaking"
                 ? "Please wait for the question."
                 : paused
-                  ? `Sending your answer in ${graceLeft}s — continue if you're not done.`
-                  : "Speak your answer. It moves on automatically when you pause."}
+                  ? `Sending in ${graceLeft}s — tap "Continue answer" to keep talking.`
+                  : "Speak your answer. It sends automatically when you pause."}
             </p>
 
             <div className="mb-4 max-h-44 space-y-2 overflow-y-auto rounded-md border bg-muted/20 p-3 text-left">
@@ -457,37 +457,37 @@ export default function PublicCall() {
             </div>
 
             <div className="flex flex-col gap-2">
-              <div className="flex gap-2">
-                {mode === "listening" && !paused && (
+              {/* Answer actions — their own row so they never crowd End call */}
+              {mode === "listening" && !paused && (
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => manualStopRef.current?.()}
+                >
+                  Done answering
+                </Button>
+              )}
+              {mode === "listening" && paused && (
+                <div className="flex gap-2">
                   <Button
                     variant="outline"
                     className="flex-1"
+                    onClick={() => resumeRef.current?.()}
+                  >
+                    Continue answer
+                  </Button>
+                  <Button
+                    className="flex-1"
                     onClick={() => manualStopRef.current?.()}
                   >
-                    Done answering
+                    Send answer{graceLeft ? ` (${graceLeft})` : ""}
                   </Button>
-                )}
-                {mode === "listening" && paused && (
-                  <>
-                    <Button
-                      variant="outline"
-                      className="flex-1"
-                      onClick={() => resumeRef.current?.()}
-                    >
-                      Continue answering
-                    </Button>
-                    <Button
-                      className="flex-1"
-                      onClick={() => manualStopRef.current?.()}
-                    >
-                      Send answer{graceLeft ? ` (${graceLeft})` : ""}
-                    </Button>
-                  </>
-                )}
-                <Button variant="destructive" className="flex-1" onClick={endNow}>
-                  <PhoneOff className="mr-2 h-4 w-4" /> End call
-                </Button>
-              </div>
+                </div>
+              )}
+              {/* End call always gets its own full-width row */}
+              <Button variant="destructive" className="w-full" onClick={endNow}>
+                <PhoneOff className="mr-2 h-4 w-4" /> End call
+              </Button>
               <Button
                 variant="ghost"
                 size="sm"
