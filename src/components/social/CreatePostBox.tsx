@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textArea";
 import { ImageWithLoader } from "@/components/ui/image-loader";
 import type { ChatChannel } from "@/lib/backend-api";
 import { Globe, ImagePlus, X } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getChannelIcon } from "./CreateChannelDialog";
 
 export type CreatePostBoxProps = {
@@ -22,6 +22,11 @@ export type CreatePostBoxProps = {
   channels: ChatChannel[];
   /** Organization name — "Public" is scoped to this org. */
   orgName?: string;
+  /**
+   * Channel currently selected in the sidebar, if any. When set, the
+   * visibility selector defaults to that channel instead of "Public".
+   */
+  activeChannelId?: string;
 };
 
 export default function CreatePostBox({
@@ -31,12 +36,19 @@ export default function CreatePostBox({
   isPosting = false,
   channels,
   orgName,
+  activeChannelId,
 }: CreatePostBoxProps) {
+  const defaultValue = activeChannelId ?? "public";
   const [content, setContent] = useState("");
-  const [selectedValue, setSelectedValue] = useState("public");
+  const [selectedValue, setSelectedValue] = useState(defaultValue);
   const [pendingMedia, setPendingMedia] = useState<File | null>(null);
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Keep the selector in sync when the user switches channels in the sidebar.
+  useEffect(() => {
+    setSelectedValue(defaultValue);
+  }, [defaultValue]);
 
   const visibility = selectedValue === "public" ? "PUBLIC" : "CHANNELS";
   const selectedChannelIds =
@@ -47,7 +59,7 @@ export default function CreatePostBox({
     if (!trimmed && !pendingMedia) return;
     onPost(trimmed, selectedChannelIds, visibility, pendingMedia ?? undefined);
     setContent("");
-    setSelectedValue("public");
+    setSelectedValue(defaultValue);
     clearMedia();
   };
 
